@@ -34,11 +34,12 @@ def get_args():
 
     return args
 
-def nvariants():
+def nvariants(n, omega, phi):
+    return phi * (n**omega)
+
+def main():
     args = get_args()
-
     n = int(args.n)
-
     if args.pop:
         phi = DEFAULT_PARAMS[args.pop]["phi"]
         omega = DEFAULT_PARAMS[args.pop]["omega"]
@@ -46,7 +47,7 @@ def nvariants():
         phi = float(args.phi)
         omega = float(args.omega)
 
-    print(phi * (n**omega))
+    print(nvariants(n, omega, phi))
 
 if __name__ == '__main__':
     nvariants()

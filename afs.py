@@ -40,8 +40,38 @@ def get_args():
 
     return args
 
-def afs():
+def afs(alpha, beta, b, macs):
+    lowers = []
+    uppers = []
+    props = []
+
+    for mac in macs:
+        fit = []
+        lowers.append(mac[0])
+        uppers.append(mac[1])
+        if sorted(lowers) != lowers or sorted(uppers) != uppers:
+            raise Exception("Mac bins need to be in numeric order")
+
+        fit = [b / ((beta + i + 1) ** alpha) for i in range(uppers[-1])]
+
+        for j in range(len(uppers)):
+            prop = sum(fit[i - 1] for i in range(lowers[j], uppers[j] + 1))
+            props.append(prop)
+
+    return [(lowers[i], uppers[i], props[i]) for i in range(len(props))]
+
+def main():
     args = get_args()
+    macs = []
+    with open(args.macs) as macs_file:
+        lines = macs_file.readlines()
+        header = lines[0].split(',')
+        if header[0].strip() != 'Lower' or header[1].strip() != 'Upper':
+            raise Exception("Mac bins file needs to have column names Lower and Upper")
+
+        for line in lines[1:]:
+            l = line.strip().split(',')
+            macs.append((int(l[0]), int(l[1])))
 
     if args.pop:
         alpha = DEFAULT_PARAMS[args.pop]['alpha']
@@ -52,36 +82,13 @@ def afs():
         beta = int(args.beta)
         b = int(args.b)
 
-    lowers = []
-    uppers = []
-    props = []
-
-    with open(args.macs) as macs:
-        lines = macs.readlines()
-        header = lines[0].split(',')
-        if header[0].strip() != 'Lower' or header[1].strip() != 'Upper':
-            raise Exception("Mac bins file needs to have column names Lower and Upper")
-
-        fit = []
-
-        for line in lines[1:]:
-            l = line.strip().split(',')
-            lowers.append(int(l[0]))
-            uppers.append(int(l[1]))
-        if sorted(lowers) != lowers or sorted(uppers) != uppers:
-            raise Exception("Mac bins need to be in numeric order")
-        
-        fit = [b/((beta + i + 1)**alpha) for i in range(uppers[-1])]
-
-        for j in range(len(uppers)):
-            prop = sum(fit[i-1] for i in range(lowers[j], uppers[j]+1))
-            props.append(prop)
+    rows = afs(alpha, beta, b, macs)
 
     with open(args.output, 'w') as f:
         f.write("Lower,Upper,Prop\n")
-        for i in range(len(uppers)):
-            f.writelines(f"{lowers[i]},{uppers[i]},{props[i]}\n")
+        for i in range(len(rows)):
+            f.writelines(f"{rows[i]},{rows[i]},{rows[i]}\n")
 
 if __name__ == '__main__':
-    afs()
+    main()
         
