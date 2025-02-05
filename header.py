@@ -1,8 +1,8 @@
 import argparse
-from os import SEEK_END
 import random
 import gzip
 from heapq import merge
+import math
 
 class Error(Exception):
     """Base class for other exceptions"""
@@ -144,13 +144,16 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                 bin_assignments[bin_id].remove(row_id)
 
         # If we don't have enough rows in the current bin, pull from the list of excess rows
-        elif have < need - activation:
-            if len(extra_rows) < abs(need - have):
+        elif have < round(need - activation):
+            if len(extra_rows) < round(abs(need - have)):
                 raise Exception(f'ERROR: Current bin has {have} variants, but the model needs {need} variants '
                                 f'and only {len(extra_rows)} excess rows are available to use and prune down '
                                 f'from larger bins.')
 
             # Calculate the probability to use any given row from the available list
+            if len(extra_rows) == 0:
+                print ("No more rows to pull from, skipping")
+                continue;
             prob_add = float(need - have) / float(len(extra_rows))
             row_ids_to_add = []
             for i in range(len(extra_rows)):
@@ -164,7 +167,7 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                     num_to_rem = matrix.row_num(row_id) - num_to_keep
                     matrix.prune_row(row_id, num_to_rem)
                     if matrix.row_num(row_id) != num_to_keep:
-                        print(f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants")
+                        print(f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer.")
                     bin_assignments[bin_id].append(row_id)
             for row_id in row_ids_to_add:
                 extra_rows.remove(row_id)
