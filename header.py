@@ -291,25 +291,23 @@ def assign_bins(M, bins, legend, func_split, fun_only, syn_only):
 
 def write_legend(all_kept_rows, input_legend, output_legend):
     header = None
-    file_i = 0
-    row_i = 0
+    legend_file_index = 0
+    kept_row_index = 0
     f = open(output_legend, 'w')
     r = open(f'{output_legend}-pruned-variants', 'w')
     with open(input_legend, "r") as in_file:
         for l in in_file.readlines():
-            if row_i == len(all_kept_rows):
-                break
-    
             if header == None:
                 f.write(l)
                 header = True
+                continue
+
+            if kept_row_index < len(all_kept_rows) and legend_file_index == all_kept_rows[kept_row_index]:
+                f.write(l)
+                kept_row_index+=1
             else:
-                if file_i == all_kept_rows[row_i]:
-                    f.write(l)
-                    row_i+=1
-                else:
-                    r.write(l)
-                file_i+=1
+                r.write(l)
+            legend_file_index+=1
 
 
 def write_hap(all_kept_rows, output_file, M):
