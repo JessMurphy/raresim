@@ -254,7 +254,6 @@ def verify_legend(legend, legend_header, M, split, probs):
 
 def assign_bins(M, bins, legend, func_split, fun_only, syn_only):
     bin_assignments = {}
-    print(M.num_rows())
 
     if func_split or fun_only or syn_only:
         bin_assignments['fun'] = {bin_id: [] for bin_id in range(len(bins['fun']))}
