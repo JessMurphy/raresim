@@ -5,10 +5,10 @@ from expected_variants import expected_variants, write_expected_variants
 import os
 
 DEFAULT_PARAMS = {
-    'AFR': {"phi":0.1576, "omega":0.6247},
-    'EAS': {"phi":0.1191, "omega":0.6369},
-    'NFE': {"phi":0.1073, "omega":0.6539},
-    'SAS': {"phi":0.1249, "omega":0.6495}
+    'AFR': {"phi":0.1576, "omega":0.6247, "alpha": 1.5883, "beta": -0.3083, "b": 0.2872},
+    'EAS': {"phi":0.1191, "omega":0.6369, "alpha": 1.6656, "beta": -0.2951, "b": 0.3137},
+    'NFE': {"phi":0.1073, "omega":0.6539, "alpha": 1.9470, "beta": -0.1180, "b": 0.6676},
+    'SAS': {"phi":0.1249, "omega":0.6495, "alpha": 1.6977, "beta": -0.2273, "b": 0.3564}
 }
 
 def get_args():
@@ -89,19 +89,20 @@ def main():
 
     # Validate inputs
     if args.pop:
-        if args.pop not in ["EAS", "AFR", "NFE", "SAS"]:
-            raise Exception(f"{args.pop} is not a valid population")
+        if args.pop.strip() not in DEFAULT_PARAMS.keys():
+            raise Exception(f"{args.pop} is not a valid population. Valid populations are: {','.join(DEFAULT_PARAMS.keys())}")
     elif (args.nvar_target_data is None or args.afs_target_data is None) and (args.alpha is None or args.beta is None or args.omega is None or args.phi is None or args.b is None):
         raise Exception('Error: either a default population should be specified or alpha, beta, omega, phi, and b parameters provided or target values for nvars and afs should be provided')
 
     # Get alpha, beta, omega, phi, b
     # TODO: Add support for target values
     if args.pop:
-        alpha = DEFAULT_PARAMS[args.pop]['alpha']
-        beta = DEFAULT_PARAMS[args.pop]['beta']
-        omega = DEFAULT_PARAMS[args.pop]['omega']
-        phi = DEFAULT_PARAMS[args.pop]['phi']
-        b = DEFAULT_PARAMS[args.pop]['b']
+        pop = args.pop.strip()
+        alpha = DEFAULT_PARAMS[pop]['alpha']
+        beta = DEFAULT_PARAMS[pop]['beta']
+        omega = DEFAULT_PARAMS[pop]['omega']
+        phi = DEFAULT_PARAMS[pop]['phi']
+        b = DEFAULT_PARAMS[pop]['b']
     else:
         alpha = float(args.alpha)
         beta = float(args.beta)
@@ -109,15 +110,13 @@ def main():
         phi = float(args.phi)
         b = float(args.b)
 
-    n = args.n
+    n = int(args.n)
 
     # Get mac bins
     macs = read_mac_bins(args.mac)
 
     num_variants = nvariants(n, omega, phi)
     rows = afs(alpha, beta, b, macs)
-    expected_variants()
-
     write_expected_variants(args.output, num_variants, rows)
 
 if __name__ == '__main__':
