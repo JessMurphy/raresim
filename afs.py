@@ -1,4 +1,6 @@
 import argparse
+import pandas as pd
+from scipy.optimize import minimize
 
 DEFAULT_PARAMS = {
     'AFR': {"alpha":1.5883, "beta":-0.3083, "b":0.2872},
@@ -39,6 +41,78 @@ def get_args():
         raise Exception('Error: either a default population should be specified or all three parameters provided')
 
     return args
+
+def fit(file):
+    # Load the Observed_bin_props from a csv file
+    Observed_bin_props = pd.read_csv(file)
+
+    # Check the column names of Observed_bin_props
+    if not all(col in Observed_bin_props.columns for col in ['Lower', 'Upper', 'Prop']):
+        raise ValueError('Observed_bin_props needs to have column names Lower, Upper, and Prop')
+
+    # Make sure the Observed_bin_props are numeric
+    Observed_bin_props['Prop'] = pd.to_numeric(Observed_bin_props['Prop'])
+
+    # Make sure there are not any NA's in the proportions
+    if Observed_bin_props['Prop'].isnull().any():
+        raise ValueError('Proportions in Observed_bin_props need to be numeric with no NA values')
+
+    if not all(pd.api.types.is_numeric_dtype(Observed_bin_props[col]) for col in ['Lower', 'Upper']):
+        raise ValueError('Observed_bin_props MAC bins need to be numeric')
+
+    # Check the order of the MAC bins
+    if not Observed_bin_props['Upper'] == sorted(Observed_bin_props['Upper']):
+        raise ValueError('The MAC bins need to be ordered from smallest to largest')
+
+    # Set the default value for p_rv to the sum of the rare variant bins
+    p_rv = Observed_bin_props['Prop'].sum()
+
+    # Define the function to calculate the least squares loss
+    def calc_prob_LS(tune):
+        # Calculate b
+        c1 = range(1, Observed_bin_props['Upper'].max() + 1)
+        indivual_prop_no_b = 1 / ((c1 + tune[1]) ** tune[0])
+        b = p_rv / sum(indivual_prop_no_b)
+
+        # Calculate the function with b for each individual MAC
+        indivual_prop = b * indivual_prop_no_b
+
+        all = 0
+        for i in range(len(Observed_bin_props)):
+            E = sum(indivual_prop[Observed_bin_props['Lower'].iloc[i] - 1:Observed_bin_props['Upper'].iloc[i]])
+            O = Observed_bin_props['Prop'].iloc[i]
+            c = (E - O) ** 2
+            all += c
+
+        return all
+
+    # Define the constraints
+    def hin_tune(x):
+        return x[0]  # The first parameter (alpha) must be > 0
+
+    # Minimize with the SLSQP function
+    tune = [1, 0]  # Start with the function 1/x (alpha = 1, beta = 0)
+    res = minimize(calc_prob_LS, tune, method='SLSQP', constraints={'type': 'ineq', 'fun': hin_tune})
+
+    # Back calculate b after the parameters have been solved for
+    b = p_rv / sum(1 / ((range(1, Observed_bin_props['Upper'].max() + 1) + res.x[1]) ** res.x[0]))
+
+    # Calculate the MAC bin proportions given the parameters
+    def afs_internal(alpha, beta, b, mac_bins):
+        c1 = range(1, mac_bins['Upper'].max() + 1)
+        indivual_prop_no_b = 1 / ((c1 + beta) ** alpha)
+        indivual_prop = b * indivual_prop_no_b
+        proportions = []
+        for i in range(len(mac_bins)):
+            proportions.append(sum(indivual_prop[mac_bins['Lower'].iloc[i] - 1:mac_bins['Upper'].iloc[i]]))
+        return proportions
+
+    re = afs_internal(res.x[0], res.x[1], b, Observed_bin_props[['Lower', 'Upper']])
+
+    # Return the parameters alpha, beta, and b, as well as the proportions as calculated by the function
+    return {'alpha': res.x[0], 'beta': res.x[1], 'b': b, 'Fitted_results': re}
+
+
 
 def afs(alpha, beta, b, macs):
     lowers = []
