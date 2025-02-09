@@ -42,35 +42,33 @@ def get_args():
 
     return args
 
-def fit(file):
-    # Load the Observed_bin_props from a csv file
-    Observed_bin_props = pd.read_csv(file)
+def fit_afs(dataframe):
 
-    # Check the column names of Observed_bin_props
-    if not all(col in Observed_bin_props.columns for col in ['Lower', 'Upper', 'Prop']):
-        raise ValueError('Observed_bin_props needs to have column names Lower, Upper, and Prop')
+    # Check the column names of dataframe
+    if not all(col in dataframe.columns for col in ['Lower', 'Upper', 'Prop']):
+        raise ValueError('dataframe needs to have column names Lower, Upper, and Prop')
 
-    # Make sure the Observed_bin_props are numeric
-    Observed_bin_props['Prop'] = pd.to_numeric(Observed_bin_props['Prop'])
+    # Make sure the dataframe are numeric
+    dataframe['Prop'] = pd.to_numeric(dataframe['Prop'])
 
     # Make sure there are not any NA's in the proportions
-    if Observed_bin_props['Prop'].isnull().any():
-        raise ValueError('Proportions in Observed_bin_props need to be numeric with no NA values')
+    if dataframe['Prop'].isnull().any():
+        raise ValueError('Proportions in dataframe need to be numeric with no NA values')
 
-    if not all(pd.api.types.is_numeric_dtype(Observed_bin_props[col]) for col in ['Lower', 'Upper']):
-        raise ValueError('Observed_bin_props MAC bins need to be numeric')
+    if not all(pd.api.types.is_numeric_dtype(dataframe[col]) for col in ['Lower', 'Upper']):
+        raise ValueError('dataframe MAC bins need to be numeric')
 
     # Check the order of the MAC bins
-    if not Observed_bin_props['Upper'] == sorted(Observed_bin_props['Upper']):
+    if not list(dataframe['Upper']) == sorted(dataframe['Upper']):
         raise ValueError('The MAC bins need to be ordered from smallest to largest')
 
     # Set the default value for p_rv to the sum of the rare variant bins
-    p_rv = Observed_bin_props['Prop'].sum()
+    p_rv = dataframe['Prop'].sum()
 
     # Define the function to calculate the least squares loss
     def calc_prob_LS(tune):
         # Calculate b
-        c1 = range(1, Observed_bin_props['Upper'].max() + 1)
+        c1 = range(1, dataframe['Upper'].max() + 1)
         indivual_prop_no_b = 1 / ((c1 + tune[1]) ** tune[0])
         b = p_rv / sum(indivual_prop_no_b)
 
@@ -78,9 +76,9 @@ def fit(file):
         indivual_prop = b * indivual_prop_no_b
 
         all = 0
-        for i in range(len(Observed_bin_props)):
-            E = sum(indivual_prop[Observed_bin_props['Lower'].iloc[i] - 1:Observed_bin_props['Upper'].iloc[i]])
-            O = Observed_bin_props['Prop'].iloc[i]
+        for i in range(len(dataframe)):
+            E = sum(indivual_prop[dataframe['Lower'].iloc[i] - 1:dataframe['Upper'].iloc[i]])
+            O = dataframe['Prop'].iloc[i]
             c = (E - O) ** 2
             all += c
 
@@ -95,7 +93,7 @@ def fit(file):
     res = minimize(calc_prob_LS, tune, method='SLSQP', constraints={'type': 'ineq', 'fun': hin_tune})
 
     # Back calculate b after the parameters have been solved for
-    b = p_rv / sum(1 / ((range(1, Observed_bin_props['Upper'].max() + 1) + res.x[1]) ** res.x[0]))
+    b = p_rv / sum(1 / ((range(1, dataframe['Upper'].max() + 1) + res.x[1]) ** res.x[0]))
 
     # Calculate the MAC bin proportions given the parameters
     def afs_internal(alpha, beta, b, mac_bins):
@@ -107,10 +105,10 @@ def fit(file):
             proportions.append(sum(indivual_prop[mac_bins['Lower'].iloc[i] - 1:mac_bins['Upper'].iloc[i]]))
         return proportions
 
-    re = afs_internal(res.x[0], res.x[1], b, Observed_bin_props[['Lower', 'Upper']])
+    re = afs_internal(res.x[0], res.x[1], b, dataframe[['Lower', 'Upper']])
 
     # Return the parameters alpha, beta, and b, as well as the proportions as calculated by the function
-    return {'alpha': res.x[0], 'beta': res.x[1], 'b': b, 'Fitted_results': re}
+    return res.x[0], res.x[1], b
 
 
 
@@ -128,9 +126,8 @@ def afs(alpha, beta, b, macs):
 
         fit = [b / ((beta + i + 1) ** alpha) for i in range(uppers[-1])]
 
-        for j in range(len(uppers)):
-            prop = sum(fit[i - 1] for i in range(lowers[j], uppers[j] + 1))
-            props.append(prop)
+        prop = sum(fit[i - 1] for i in range(mac[0], mac[1] + 1))
+        props.append(prop)
 
     return [(lowers[i], uppers[i], props[i]) for i in range(len(props))]
 

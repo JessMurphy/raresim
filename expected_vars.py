@@ -1,8 +1,9 @@
 import argparse
-from nvariants import nvariants
-from afs import afs
+from nvariants import nvariants,fit_nvars
+from afs import afs,fit_afs
 from expected_variants import expected_variants, write_expected_variants
 import os
+import pandas as pd
 
 DEFAULT_PARAMS = {
     'AFR': {"phi":0.1576, "omega":0.6247, "alpha": 1.5883, "beta": -0.3083, "b": 0.2872},
@@ -84,8 +85,18 @@ def read_mac_bins(macs_file):
 
     return macs
 
+def check_for_stratification(file):
+    with open(file) as f:
+        lines = f.readlines()
+        header = lines[0].split('\t')
+        if len(header) > 3:
+            return True
+        return False
+
 def main():
     args = get_args()
+    n = int(args.n)
+    macs = read_mac_bins(args.mac)
 
     # Validate inputs
     if args.pop:
@@ -93,31 +104,69 @@ def main():
             raise Exception(f"{args.pop} is not a valid population. Valid populations are: {','.join(DEFAULT_PARAMS.keys())}")
     elif (args.nvar_target_data is None or args.afs_target_data is None) and (args.alpha is None or args.beta is None or args.omega is None or args.phi is None or args.b is None):
         raise Exception('Error: either a default population should be specified or alpha, beta, omega, phi, and b parameters provided or target values for nvars and afs should be provided')
+    is_stratified=False
+    if args.afs_target_data is not None:
+        is_stratified = check_for_stratification(args.afs_target_data)
 
-    # Get alpha, beta, omega, phi, b
-    # TODO: Add support for target values
-    if args.pop:
-        pop = args.pop.strip()
-        alpha = DEFAULT_PARAMS[pop]['alpha']
-        beta = DEFAULT_PARAMS[pop]['beta']
-        omega = DEFAULT_PARAMS[pop]['omega']
-        phi = DEFAULT_PARAMS[pop]['phi']
-        b = DEFAULT_PARAMS[pop]['b']
+    if not is_stratified:
+        # Get alpha, beta, omega, phi, b
+        if args.pop:
+            pop = args.pop.strip()
+            alpha = DEFAULT_PARAMS[pop]['alpha']
+            beta = DEFAULT_PARAMS[pop]['beta']
+            omega = DEFAULT_PARAMS[pop]['omega']
+            phi = DEFAULT_PARAMS[pop]['phi']
+            b = DEFAULT_PARAMS[pop]['b']
+        elif args.nvar_target_data is not None and args.afs_target_data is not None:
+            df_afs = pd.read_csv(args.afs_target_data, delimiter='\t')
+            df_nvar = pd.read_csv(args.nvar_target_data, delimiter='\t')
+
+            alpha, beta, b = fit_afs(df_afs)
+            omega, phi = fit_nvars(df_nvar)
+        else:
+            alpha = float(args.alpha)
+            beta = float(args.beta)
+            omega = float(args.omega)
+            phi = float(args.phi)
+            b = float(args.b)
+
+        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        rows = afs(alpha, beta, b, macs)
+        write_expected_variants(args.output, num_variants, rows)
+
     else:
-        alpha = float(args.alpha)
-        beta = float(args.beta)
-        omega = float(args.omega)
-        phi = float(args.phi)
-        b = float(args.b)
+        if args.nvar_target_data is None or args.afs_target_data is None:
+            raise Exception('Error: stratification is currently only supported when target data is provided for nvars and afs')
 
-    n = int(args.n)
+        df_nvar_fun = pd.read_csv(args.nvar_target_data, delimiter='\t')
+        df_nvar_fun.drop('syn_per_kb', axis=1, inplace=True)
 
-    # Get mac bins
-    macs = read_mac_bins(args.mac)
+        df_nvar_syn = pd.read_csv(args.nvar_target_data, delimiter='\t')
+        df_nvar_syn.drop('fun_per_kb', axis=1, inplace=True)
 
-    num_variants = nvariants(n, omega, phi)
-    rows = afs(alpha, beta, b, macs)
-    write_expected_variants(args.output, num_variants, rows)
+        df_afs_fun = pd.read_csv(args.afs_target_data, delimiter='\t')
+        df_afs_fun.drop('syn_prop', axis=1, inplace=True)
+        df_afs_fun.rename(columns={'fun_prop' : 'Prop'}, inplace=True)
+
+        df_afs_syn = pd.read_csv(args.afs_target_data, delimiter='\t')
+        df_afs_syn.drop('fun_prop', axis=1, inplace=True)
+        df_afs_syn.rename(columns={'syn_prop' : 'Prop'}, inplace=True)
+
+        # Get values and write for Synonymous first
+        alpha, beta, b = fit_afs(df_afs_syn)
+        omega, phi = fit_nvars(df_nvar_syn)
+        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        rows = afs(alpha, beta, b, macs)
+        syn_output_file = os.path.splitext(args.output)[0] + '_syn.txt'
+        write_expected_variants(syn_output_file, num_variants, rows)
+
+        # Now do it for Functional
+        alpha, beta, b = fit_afs(df_afs_fun)
+        omega, phi = fit_nvars(df_nvar_fun)
+        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        rows = afs(alpha, beta, b, macs)
+        fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
+        write_expected_variants(fun_output_file, num_variants, rows)
 
 if __name__ == '__main__':
     main()

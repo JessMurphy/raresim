@@ -37,24 +37,26 @@ def get_args():
 
     return args
 
-def fit(file):
-    Observed_variants_per_kb = pd.read_csv(file)
+def fit_nvars_from_file(file):
+    df = pd.read_csv(file, delimiter='\t')
+
+def fit_nvars(dataframe):
     # Check that each column is numeric
-    if not all(pd.api.types.is_numeric_dtype(Observed_variants_per_kb[col]) for col in Observed_variants_per_kb.columns):
+    if not all(pd.api.types.is_numeric_dtype(dataframe[col]) for col in dataframe.columns):
         raise ValueError('Error: Columns need to be numeric')
 
     # Check that there are not any NA values
-    if Observed_variants_per_kb.isnull().any().any():
+    if dataframe.isnull().any().any():
         raise ValueError('Number of variants per Kb need to be numeric with no NA values')
 
     # Check that the sample sizes go from smallest to largest
-    if not all(Observed_variants_per_kb.iloc[i, 0] <= Observed_variants_per_kb.iloc[i + 1, 0] for i in range(len(Observed_variants_per_kb) - 1)):
+    if not all(dataframe.iloc[i, 0] <= dataframe.iloc[i + 1, 0] for i in range(len(dataframe) - 1)):
         raise ValueError('The sample sizes need to be ordered from smallest to largest')
 
     # Define the least squares loss function
     def leastsquares(tune):
-        E = tune[0] * (Observed_variants_per_kb.iloc[:, 0] ** tune[1])
-        sq_err = (E - Observed_variants_per_kb.iloc[:, 1]) ** 2
+        E = tune[0] * (dataframe.iloc[:, 0] ** tune[1])
+        sq_err = (E - dataframe.iloc[:, 1]) ** 2
         d = sum(sq_err)
         return d
 
@@ -63,7 +65,7 @@ def fit(file):
         return [x[0], x[1], 1 - x[1]]
 
     # Define the starting value for phi so the end of the function matches with omega = 0.45
-    phi = Observed_variants_per_kb.iloc[-1, 1] / (Observed_variants_per_kb.iloc[-1, 0] ** 0.45)
+    phi = dataframe.iloc[-1, 1] / (dataframe.iloc[-1, 0] ** 0.45)
     tune = [phi, 0.45]
 
     # Use SLSQP to find phi and omega
@@ -73,20 +75,20 @@ def fit(file):
     if res.fun > 1000:
         re_tab1 = []
         for omega in [i / 10 for i in range(15, 66)]:
-            phi = Observed_variants_per_kb.iloc[-1, 1] / (Observed_variants_per_kb.iloc[-1, 0] ** omega)
+            phi = dataframe.iloc[-1, 1] / (dataframe.iloc[-1, 0] ** omega)
             tune = [phi, omega]
             res1 = minimize(leastsquares, tune, method='SLSQP', constraints={'type': 'ineq', 'fun': lambda x: hin_tune(x)})
             to_bind1 = [res1.x[0], res1.x[1], res1.fun]
             re_tab1.append(to_bind1)
 
         re_fin = min(re_tab1, key=lambda x: x[2])
-        return {'phi': re_fin[0], 'omega': re_fin[1]}
+        return re_fin[0], re_fin[1]
     else:
-        return {'phi': res.x[0], 'omega': res.x[1]}
+        return res.x[0], res.x[1]
 
 
 def nvariants(n, omega, phi):
-    return phi * (n**omega)
+    return float(phi) * (int(n)**float(omega))
 
 def main():
     args = get_args()
