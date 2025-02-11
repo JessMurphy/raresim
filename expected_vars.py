@@ -8,7 +8,7 @@ import pandas as pd
 DEFAULT_PARAMS = {
     'AFR': {"phi":0.1576, "omega":0.6247, "alpha": 1.5883, "beta": -0.3083, "b": 0.2872},
     'EAS': {"phi":0.1191, "omega":0.6369, "alpha": 1.6656, "beta": -0.2951, "b": 0.3137},
-    'NFE': {"phi":0.1073, "omega":0.6539, "alpha": 1.9470, "beta": -0.1180, "b": 0.6676},
+    'NFE': {"phi":0.1073, "omega":0.6539, "alpha": 1.9470, "beta": 0.1180, "b": 0.6676},
     'SAS': {"phi":0.1249, "omega":0.6495, "alpha": 1.6977, "beta": -0.2273, "b": 0.3564}
 }
 
