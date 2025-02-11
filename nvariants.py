@@ -1,6 +1,4 @@
 import argparse
-import pandas as pd
-from scipy.optimize import minimize
 
 
 DEFAULT_PARAMS = {
@@ -81,7 +79,7 @@ def fit_nvars(Observed_variants_per_kb):
 
     # Use SLSQP to find phi and omega
     constraints = {'type': 'ineq', 'fun': hin_tune}
-    re_LS = minimize(leastsquares, tune, constraints=constraints, options={'disp': False, 'xtol': 1e-12})
+    re_LS = minimize(leastsquares, tune, constraints=constraints, options={'disp': False})
 
     # If the original starting value resulted in a large loss (>1000), iterate over starting values
     if re_LS.fun > 1000:

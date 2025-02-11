@@ -1,7 +1,7 @@
 import argparse
 from nvariants import nvariants,fit_nvars
 from afs import afs,fit_afs
-from expected_variants import expected_variants, write_expected_variants
+from expected_variants import write_expected_variants
 import os
 import pandas as pd
 
@@ -153,7 +153,7 @@ def main():
         df_afs_syn.rename(columns={'syn_prop' : 'Prop'}, inplace=True)
 
         # Get values and write for Synonymous first
-        print("Calculating synonymous values")
+        print("\nCalculating synonymous values")
         alpha, beta, b = fit_afs(df_afs_syn)
         omega, phi = fit_nvars(df_nvar_syn)
         num_variants = nvariants(n, omega, phi, reg_size)
@@ -161,14 +161,14 @@ def main():
         syn_output_file = os.path.splitext(args.output)[0] + '_syn.txt'
         write_expected_variants(syn_output_file, num_variants, rows)
 
-        # # Now do it for Functional
-        # print("Calculating functional values")
-        # alpha, beta, b = fit_afs(df_afs_fun)
-        # omega, phi = fit_nvars(df_nvar_fun)
-        # num_variants = nvariants(n, omega, phi, reg_size)
-        # rows = afs(alpha, beta, b, macs)
-        # fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
-        # write_expected_variants(fun_output_file, num_variants, rows)
+        # Now do it for Functional
+        print("\nCalculating functional values")
+        alpha, beta, b = fit_afs(df_afs_fun)
+        omega, phi = fit_nvars(df_nvar_fun)
+        num_variants = nvariants(n, omega, phi, reg_size)
+        rows = afs(alpha, beta, b, macs)
+        fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
+        write_expected_variants(fun_output_file, num_variants, rows)
 
 if __name__ == '__main__':
     main()
