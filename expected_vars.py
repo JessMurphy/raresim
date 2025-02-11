@@ -130,7 +130,7 @@ def main():
             phi = float(args.phi)
             b = float(args.b)
 
-        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
         rows = afs(alpha, beta, b, macs)
         write_expected_variants(args.output, num_variants, rows)
 
@@ -155,7 +155,7 @@ def main():
         # Get values and write for Synonymous first
         alpha, beta, b = fit_afs(df_afs_syn)
         omega, phi = fit_nvars(df_nvar_syn)
-        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
         rows = afs(alpha, beta, b, macs)
         syn_output_file = os.path.splitext(args.output)[0] + '_syn.txt'
         write_expected_variants(syn_output_file, num_variants, rows)
@@ -163,7 +163,7 @@ def main():
         # Now do it for Functional
         alpha, beta, b = fit_afs(df_afs_fun)
         omega, phi = fit_nvars(df_nvar_fun)
-        num_variants = nvariants(n, omega, phi) * int(args.reg_size)
+        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
         rows = afs(alpha, beta, b, macs)
         fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
         write_expected_variants(fun_output_file, num_variants, rows)
