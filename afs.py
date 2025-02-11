@@ -108,8 +108,10 @@ def fit_afs(dataframe):
     re = afs_internal(res.x[0], res.x[1], b, dataframe[['Lower', 'Upper']])
 
     # Return the parameters alpha, beta, and b, as well as the proportions as calculated by the function
-    return res.x[0], res.x[1], b
-
+    alpha = res.x[0]
+    beta = res.x[1]
+    print(f"Calculated the following params from AFS target data. alpha: {alpha}, beta: {beta}, b: {b}")
+    return alpha, beta, b
 
 
 def afs(alpha, beta, b, macs):
@@ -129,7 +131,11 @@ def afs(alpha, beta, b, macs):
         prop = sum(fit[i - 1] for i in range(mac[0], mac[1] + 1))
         props.append(prop)
 
-    return [(lowers[i], uppers[i], props[i]) for i in range(len(props))]
+    ret = [(lowers[i], uppers[i], props[i]) for i in range(len(props))]
+    print ("Props results from afs function")
+    for row in ret:
+        print(row)
+    return ret
 
 def main():
     args = get_args()

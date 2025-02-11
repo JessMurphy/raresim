@@ -97,6 +97,7 @@ def main():
     args = get_args()
     n = int(args.n)
     macs = read_mac_bins(args.mac)
+    reg_size = float(args.reg_size)
 
     # Validate inputs
     if args.pop:
@@ -120,7 +121,6 @@ def main():
         elif args.nvar_target_data is not None and args.afs_target_data is not None:
             df_afs = pd.read_csv(args.afs_target_data, delimiter='\t')
             df_nvar = pd.read_csv(args.nvar_target_data, delimiter='\t')
-
             alpha, beta, b = fit_afs(df_afs)
             omega, phi = fit_nvars(df_nvar)
         else:
@@ -130,7 +130,7 @@ def main():
             phi = float(args.phi)
             b = float(args.b)
 
-        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
+        num_variants = nvariants(n, omega, phi, reg_size)
         rows = afs(alpha, beta, b, macs)
         write_expected_variants(args.output, num_variants, rows)
 
@@ -153,20 +153,22 @@ def main():
         df_afs_syn.rename(columns={'syn_prop' : 'Prop'}, inplace=True)
 
         # Get values and write for Synonymous first
+        print("Calculating synonymous values")
         alpha, beta, b = fit_afs(df_afs_syn)
         omega, phi = fit_nvars(df_nvar_syn)
-        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
+        num_variants = nvariants(n, omega, phi, reg_size)
         rows = afs(alpha, beta, b, macs)
         syn_output_file = os.path.splitext(args.output)[0] + '_syn.txt'
         write_expected_variants(syn_output_file, num_variants, rows)
 
-        # Now do it for Functional
-        alpha, beta, b = fit_afs(df_afs_fun)
-        omega, phi = fit_nvars(df_nvar_fun)
-        num_variants = nvariants(n, omega, phi) * float(args.reg_size)
-        rows = afs(alpha, beta, b, macs)
-        fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
-        write_expected_variants(fun_output_file, num_variants, rows)
+        # # Now do it for Functional
+        # print("Calculating functional values")
+        # alpha, beta, b = fit_afs(df_afs_fun)
+        # omega, phi = fit_nvars(df_nvar_fun)
+        # num_variants = nvariants(n, omega, phi, reg_size)
+        # rows = afs(alpha, beta, b, macs)
+        # fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
+        # write_expected_variants(fun_output_file, num_variants, rows)
 
 if __name__ == '__main__':
     main()

@@ -40,55 +40,79 @@ def get_args():
 def fit_nvars_from_file(file):
     df = pd.read_csv(file, delimiter='\t')
 
-def fit_nvars(dataframe):
+
+import numpy as np
+import pandas as pd
+from scipy.optimize import minimize
+
+
+def fit_nvars(Observed_variants_per_kb):
     # Check that each column is numeric
-    if not all(pd.api.types.is_numeric_dtype(dataframe[col]) for col in dataframe.columns):
-        raise ValueError('Error: Columns need to be numeric')
+    if not np.issubdtype(Observed_variants_per_kb.iloc[:, 0].dtype, np.number) or not np.issubdtype(
+            Observed_variants_per_kb.iloc[:, 1].dtype, np.number):
+        raise ValueError('Columns need to be numeric')
 
     # Check that there are not any NA values
-    if dataframe.isnull().any().any():
+    if Observed_variants_per_kb.iloc[:, 1].isna().any():
         raise ValueError('Number of variants per Kb need to be numeric with no NA values')
 
     # Check that the sample sizes go from smallest to largest
-    if not all(dataframe.iloc[i, 0] <= dataframe.iloc[i + 1, 0] for i in range(len(dataframe) - 1)):
+    if not Observed_variants_per_kb.iloc[:, 0].is_monotonic_increasing:
         raise ValueError('The sample sizes need to be ordered from smallest to largest')
 
-    # Define the least squares loss function
+    # define the least squares loss function
     def leastsquares(tune):
-        E = tune[0] * (dataframe.iloc[:, 0] ** tune[1])
-        sq_err = (E - dataframe.iloc[:, 1]) ** 2
-        d = sum(sq_err)
-        return d
+        E = tune[0] * (Observed_variants_per_kb.iloc[:, 0] ** tune[
+            1])  # calculated the expected number of variants (from the function)
+        sq_err = (E - Observed_variants_per_kb.iloc[:, 1]) ** 2  # calculate the squared error of expected - observed
+        return np.sum(sq_err)  # return the squared error
 
-    # Define the constraints
-    def hin_tune(x):
-        return [x[0], x[1], 1 - x[1]]
+    def hin_tune(x):  # constraints
+        h = np.zeros(3)
+        h[0] = x[0]  # phi greater than 0
+        h[1] = x[1]  # omega greater than 0
+        h[2] = 1 - x[1]  # omega less than 1
+        return h
 
-    # Define the starting value for phi so the end of the function matches with omega = 0.45
-    phi = dataframe.iloc[-1, 1] / (dataframe.iloc[-1, 0] ** 0.45)
-    tune = [phi, 0.45]
+    # define the starting value for phi so the end of the function matches with omega = 0.45
+    phi = Observed_variants_per_kb.iloc[Observed_variants_per_kb.iloc[:, 0].idxmax(), 1] / (
+                Observed_variants_per_kb.iloc[Observed_variants_per_kb.iloc[:, 0].idxmax(), 0] ** 0.45)
+    tune = np.array([phi, 0.45])  # specify the starting values
 
     # Use SLSQP to find phi and omega
-    res = minimize(leastsquares, tune, method='SLSQP', constraints={'type': 'ineq', 'fun': lambda x: hin_tune(x)})
+    constraints = {'type': 'ineq', 'fun': hin_tune}
+    re_LS = minimize(leastsquares, tune, constraints=constraints, options={'disp': False, 'xtol': 1e-12})
 
     # If the original starting value resulted in a large loss (>1000), iterate over starting values
-    if res.fun > 1000:
-        re_tab1 = []
-        for omega in [i / 10 for i in range(15, 66)]:
-            phi = dataframe.iloc[-1, 1] / (dataframe.iloc[-1, 0] ** omega)
-            tune = [phi, omega]
-            res1 = minimize(leastsquares, tune, method='SLSQP', constraints={'type': 'ineq', 'fun': lambda x: hin_tune(x)})
-            to_bind1 = [res1.x[0], res1.x[1], res1.fun]
-            re_tab1.append(to_bind1)
+    if re_LS.fun > 1000:
+        re_tab1 = []  # create to hold the new parameters
+        for omega in np.arange(0.15, 0.66, 0.1):  # optimize with different values of omega
 
-        re_fin = min(re_tab1, key=lambda x: x[2])
-        return re_fin[0], re_fin[1]
-    else:
-        return res.x[0], res.x[1]
+            # specify phi to fit the end of the function with the current value of omega
+            phi = Observed_variants_per_kb.iloc[Observed_variants_per_kb.iloc[:, 0].idxmax(), 1] / (
+                        Observed_variants_per_kb.iloc[Observed_variants_per_kb.iloc[:, 0].idxmax(), 0] ** omega)
+            tune = np.array([phi, omega])  # updated starting values
 
+            re_LS1 = minimize(leastsquares, tune, constraints=constraints,
+                              options={'disp': False, 'xtol': 1e-12})  # estimate parameters with SLSQP
+            to_bind1 = np.concatenate((re_LS1.x, [re_LS1.fun]))  # record parameters and loss value
+            re_tab1.append(to_bind1)  # bind information from each iteration together
 
-def nvariants(n, omega, phi):
-    return float(phi) * (int(n)**float(omega))
+        re_tab1 = np.array(re_tab1)
+        re_fin = re_tab1[np.argmin(re_tab1[:, 2])]  # select the minimum least squared error
+        phi= re_fin[0]
+        omega = re_fin[1]
+    else:  # if the loss was <1000, bring the parameters forward
+        phi = re_LS.x[0]
+        omega = re_LS.x[1]
+
+    print(f"Calculated the following params from nvar target data. omega: {omega}, phi: {phi}")
+    return omega,phi
+
+def nvariants(n, omega, phi, reg_size):
+    ret = float(phi) * (int(n)**float(omega)) * reg_size
+    print(f"Calculated {ret} total variants (accounting for region size)")
+    return ret
 
 def main():
     args = get_args()
@@ -100,8 +124,7 @@ def main():
         phi = float(args.phi)
         omega = float(args.omega)
 
-    print(nvariants(n, omega, phi))
+    print(nvariants(n, omega, phi, 1))
 
 if __name__ == '__main__':
-    nvariants()
-        
+        main()
