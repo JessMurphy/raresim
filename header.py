@@ -70,7 +70,7 @@ def get_args():
 
     parser.add_argument('-z',
                         action='store_true',
-                        help='Rows of zeros are removed from input haps file')
+                        help='Rows of zeros and pruned rows are removed from input haps file')
 
     parser.add_argument('-prob',
                         action='store_true',

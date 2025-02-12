@@ -1,3 +1,5 @@
+import timeit
+
 from rareSim import sparse
 import gzip
 import sys
@@ -11,8 +13,6 @@ def main():
         func_split, fun_only, syn_only = get_split(args)
     except Exception as e:
         sys.exit(str(e))
-
-    print(args.sparse_matrix)
 
     M = sparse(None)
     M.load(args.sparse_matrix)
@@ -96,11 +96,19 @@ def main():
 
         all_kept_rows = get_all_kept_rows(bin_h, R, func_split, fun_only, syn_only, args.keep_protected, legend)
 
+        if not args.z:
+            for row in range(M.num_rows()):
+                if row not in all_kept_rows:
+                    M.prune_row(row, M.row_num(row))
+                    if M.row_num(row) != 0:
+                        raise Exception("ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
+                    all_kept_rows.append(row)
+            all_kept_rows.sort()
+
         # No need to write a new legend when using the z flag as we are not removing rows
         if args.z:
             print()
             print('Writing new variant legend')
-            all_kept_rows = [x for x in all_kept_rows if x not in rows_of_zeros]
             write_legend(all_kept_rows, args.input_legend, args.output_legend)
 
         print()
