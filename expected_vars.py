@@ -54,6 +54,18 @@ def get_args():
     parser.add_argument('--reg_size',
                         dest='reg_size',
                         help='Region size in kilobases')
+    parser.add_argument('-w',
+                        dest='w',
+                        default='1.0',
+                        help='Weight value to multiple total number of variants by in non-stratified runs. Valid range of values is [0,2] with a default of 1')
+    parser.add_argument('--w_fun',
+                        dest='w_fun',
+                        default='1.0',
+                        help='Weight value to multiple total number of functional variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
+    parser.add_argument('--w_syn',
+                        dest='w_syn',
+                        default='1.0',
+                        help='Weight value to multiple total number of synonymous variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
 
     args = parser.parse_args()
 
@@ -130,7 +142,9 @@ def main():
             phi = float(args.phi)
             b = float(args.b)
 
-        num_variants = nvariants(n, omega, phi, reg_size)
+        weight = max(0.0, min(float(args.w), 2.0)) # clamp the weight to be in the range [0.2]
+
+        num_variants = nvariants(n, omega, phi, reg_size, weight)
         rows = afs(alpha, beta, b, macs)
         write_expected_variants(args.output, num_variants, rows)
 
@@ -154,18 +168,20 @@ def main():
 
         # Get values and write for Synonymous first
         print("\nCalculating synonymous values")
+        syn_weight = max(0.0, min(float(args.w_syn), 2.0)) # clamp the weight to be in the range [0.2]
         alpha, beta, b = fit_afs(df_afs_syn)
         omega, phi = fit_nvars(df_nvar_syn)
-        num_variants = nvariants(n, omega, phi, reg_size)
+        num_variants = nvariants(n, omega, phi, reg_size, syn_weight)
         rows = afs(alpha, beta, b, macs)
         syn_output_file = os.path.splitext(args.output)[0] + '_syn.txt'
         write_expected_variants(syn_output_file, num_variants, rows)
 
         # Now do it for Functional
         print("\nCalculating functional values")
+        fun_weight = max(0.0, min(float(args.w_fun), 2.0)) # clamp the weight to be in the range [0.2]
         alpha, beta, b = fit_afs(df_afs_fun)
         omega, phi = fit_nvars(df_nvar_fun)
-        num_variants = nvariants(n, omega, phi, reg_size)
+        num_variants = nvariants(n, omega, phi, reg_size, fun_weight)
         rows = afs(alpha, beta, b, macs)
         fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
         write_expected_variants(fun_output_file, num_variants, rows)

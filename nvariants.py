@@ -107,8 +107,8 @@ def fit_nvars(Observed_variants_per_kb):
     print(f"Calculated the following params from nvar target data. omega: {omega}, phi: {phi}")
     return omega,phi
 
-def nvariants(n, omega, phi, reg_size):
-    ret = float(phi) * (int(n)**float(omega)) * reg_size
+def nvariants(n, omega, phi, reg_size, weight):
+    ret = float(phi) * (int(n)**float(omega)) * reg_size * weight
     print(f"Calculated {ret} total variants (accounting for region size)")
     return ret
 
