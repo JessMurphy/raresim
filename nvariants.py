@@ -60,8 +60,8 @@ def fit_nvars(Observed_variants_per_kb):
 
     # define the least squares loss function
     def leastsquares(tune):
-        E = tune[0] * (Observed_variants_per_kb.iloc[:, 0] ** tune[
-            1])  # calculated the expected number of variants (from the function)
+        # calculate the expected number of variants (from the function)
+        E = tune[0] * (Observed_variants_per_kb.iloc[:, 0] ** tune[1])
         sq_err = (E - Observed_variants_per_kb.iloc[:, 1]) ** 2  # calculate the squared error of expected - observed
         return np.sum(sq_err)  # return the squared error
 
@@ -79,7 +79,7 @@ def fit_nvars(Observed_variants_per_kb):
 
     # Use SLSQP to find phi and omega
     constraints = {'type': 'ineq', 'fun': hin_tune}
-    re_LS = minimize(leastsquares, tune, constraints=constraints, options={'disp': False})
+    re_LS = minimize(leastsquares, tune, constraints=constraints, options={'disp': False, 'ftol': 0.0, 'maxiter': 100})
 
     # If the original starting value resulted in a large loss (>1000), iterate over starting values
     if re_LS.fun > 1000:

@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
 import numpy as np
-from scipy.optimize import minimize
+from scipy.optimize import minimize, show_options
 
 DEFAULT_PARAMS = {
     'AFR': {"alpha":1.5883, "beta":-0.3083, "b":0.2872},
@@ -43,30 +43,29 @@ def get_args():
 
     return args
 
-def fit_afs(Observed_bin_props, p_rv=None):
+def fit_afs(observed_bin_props_df):
     # Check the column names of Observed_bin_props
-    if list(Observed_bin_props.columns[:3]) != ['Lower', 'Upper', 'Prop']:
+    if list(observed_bin_props_df.columns[:3]) != ['Lower', 'Upper', 'Prop']:
         raise Exception('Observed_bin_props needs to have column names Lower, Upper, and Prop')
 
     # Make sure the Observed_bin_props are numeric
-    Observed_bin_props['Prop'] = pd.to_numeric(Observed_bin_props['Prop'], errors='raise')
+    observed_bin_props_df['Prop'] = pd.to_numeric(observed_bin_props_df['Prop'], errors='raise')
 
     # Make sure there are not any NAs in the proportions
-    if Observed_bin_props['Prop'].isnull().any():
+    if observed_bin_props_df['Prop'].isnull().any():
         raise Exception('Proportions in Observed_bin_props need to be numeric with no NA values')
 
-    if not pd.api.types.is_numeric_dtype(Observed_bin_props['Lower']) or not pd.api.types.is_numeric_dtype(
-            Observed_bin_props['Upper']):
+    if not pd.api.types.is_numeric_dtype(observed_bin_props_df['Lower']) or not pd.api.types.is_numeric_dtype(
+            observed_bin_props_df['Upper']):
         raise Exception('Observed_bin_props MAC bins need to be numeric')
 
     # Check the order of the MAC bins
-    if not Observed_bin_props['Upper'].is_monotonic_increasing or not Observed_bin_props[
+    if not observed_bin_props_df['Upper'].is_monotonic_increasing or not observed_bin_props_df[
         'Lower'].is_monotonic_increasing:
         raise Exception('The MAC bins need to be ordered from smallest to largest')
 
     # Set the default value for p_rv to the sum of the rare variant bins
-    if p_rv is None:
-        p_rv = Observed_bin_props['Prop'].sum()
+    p_rv = observed_bin_props_df['Prop'].sum()
 
     # specify the function to define the constraints
     def hin_tune(x):
@@ -75,14 +74,14 @@ def fit_afs(Observed_bin_props, p_rv=None):
         return h
 
     # c1: individual MACs to use in the function
-    upper_last = Observed_bin_props['Upper'].iloc[-1]
+    upper_last = observed_bin_props_df['Upper'].iloc[-1]
     c1 = np.arange(1, int(upper_last) + 1)  # creates a sequence from 1 to the last Upper value
 
-    def calc_prob_LS(tune):
-        # define the least squares loss function
-        # Calculate b
+    # define the least squares loss function
+    def prob_leastsquares(tune):
         alpha = tune[0]
         beta_val = tune[1]
+        # Calculate b
         # calculate the function completely without b for each individual MAC
         individual_prop_no_b = 1 / ((c1 + beta_val) ** alpha)
         # solve for b
@@ -92,10 +91,10 @@ def fit_afs(Observed_bin_props, p_rv=None):
 
         total_error = 0
         # loop over the bins
-        for i, row in Observed_bin_props.iterrows():
+        for i, row in observed_bin_props_df.iterrows():
             # Calculate expected (from the function)
             # Adjust index by subtracting 1 because Python arrays are 0-indexed
-            lower_index = int(row['Lower']) - 1
+            lower_index = int(row['Lower']) -1
             upper_index = int(row['Upper'])
             E = np.sum(individual_prop[lower_index:upper_index])
             # record the observed proportion in the target data
@@ -113,8 +112,8 @@ def fit_afs(Observed_bin_props, p_rv=None):
 
     # Minimize with the SLSQP function using the starting values (tune), the least squares loss function (calc_prob_LS), and constraints (hin_tune)
     # Constraint: x[0] > 0
-    cons = [{'type': 'ineq', 'fun': lambda x: x[0]}]
-    S = minimize(calc_prob_LS, tune, method='SLSQP', constraints=cons, options={'disp': False})
+    cons = {'type': 'ineq', 'fun': lambda x: x[0]}
+    S = minimize(prob_leastsquares, tune, constraints=cons, options={'disp': False, 'ftol': 0.0, 'maxiter': 100})
 
     # back calculate b after the parameters have been solved for
     alpha_opt = S.x[0]
