@@ -25,7 +25,7 @@ def get_bin(bins, val):
     for i in range(len(bins)):
         if val >= bins[i][0] and val <= bins[i][1]:
             return i
-    return i
+    return i+1
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -108,8 +108,9 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
     @param extra_rows: list of rows that were removed and never re-added
     @param matrix: sparse matrix of haps
     '''
+    extra_bin = bin_assignments[-1]
     # Loop through the bins from largest to smallest
-    for bin_id in range(len(bin_assignments))[::-1]:
+    for bin_id in range(len(bin_assignments))[:-1:-1]:
         # If there are any rows with too many 1s for the largest bin, they get put into an extra bin,
         # and we do not prune these alleles away
         if bin_id == len(bins):
@@ -145,14 +146,14 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
 
         # If we don't have enough rows in the current bin, pull from the list of excess rows
         elif have < round(need - activation):
-            if len(extra_rows) < round(abs(need - have)):
+            if len(extra_rows) + len(extra_bin) < round(abs(need - have)):
                 raise Exception(f'ERROR: Current bin has {have} variants, but the model needs {need} variants '
                                 f'and only {len(extra_rows)} excess rows are available to use and prune down '
                                 f'from larger bins.')
 
             # Calculate the probability to use any given row from the available list
             if len(extra_rows) == 0:
-                print ("No more rows to pull from, skipping")
+                print ("No more extra pruned rows to pull from, skipping")
                 continue;
             prob_add = float(need - have) / float(len(extra_rows))
             row_ids_to_add = []
@@ -174,16 +175,18 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
 
 
 def print_bin(bin_assignments, bins):
+    print(f"{'Bin':<12}{'Expected':<18}{'Actual':<10}")
     for bin_id in range(len(bin_assignments)):
         if bin_id < len(bins):
-            print('[' + str(bins[bin_id][0]) + ',' \
-            	  + str(bins[bin_id][1]) + ']\t' \
-            	  + str(bins[bin_id][2]) + '\t' \
-		  + str(len(bin_assignments[bin_id])))
+            col1 = f"[{str(bins[bin_id][0])},{str(bins[bin_id][1])}]"
+            col2 = f"{str(bins[bin_id][2])}"
+            col3 = f"{str(len(bin_assignments[bin_id]))}"
         else:
-            print('[' + str(bins[bin_id-1][1]+1) + ', ]\t' \
-            	  +  '\t' \
-		  + str(len(bin_assignments[bin_id])))
+            col1 = f"[{str(bins[bin_id-1][1]+1)},\u221E]"
+            col2 = "N/A"
+            col3 = f"{str(len(bin_assignments[bin_id]))}"
+        print(f"{col1:<12}{col2:<18}{col3:<10}")
+
 
 def read_legend(legend_file_name):
     header = None
@@ -252,21 +255,21 @@ def verify_legend(legend, legend_header, M, split, probs):
 
 
 
-def assign_bins(M, bins, legend, func_split, fun_only, syn_only):
+def assign_bins(matrix, bins, legend, is_func_split, is_fun_only, is_syn_only):
     bin_assignments = {}
 
-    if func_split or fun_only or syn_only:
-        bin_assignments['fun'] = {bin_id: [] for bin_id in range(len(bins['fun']))}
-        bin_assignments['syn'] = {bin_id: [] for bin_id in range(len(bins['syn']))}
+    if is_func_split or is_fun_only or is_syn_only:
+        bin_assignments['fun'] = {bin_id: [] for bin_id in range(len(bins['fun']) + 1)}
+        bin_assignments['syn'] = {bin_id: [] for bin_id in range(len(bins['syn']) + 1)}
     else:
-        bin_assignments = {bin_id: [] for bin_id in range(len(bins))}
+        bin_assignments = {bin_id: [] for bin_id in range(len(bins) + 1)}
 
     row_i = 0
-    for row in range( M.num_rows()):
-        row_num = M.row_num(row)
+    for row in range(matrix.num_rows()):
+        row_num = matrix.row_num(row)
 
         if row_num > 0:
-            if func_split:
+            if is_func_split:
                 bin_id = get_bin(bins[legend[row_i]['fun']], row_num)
             else:
                 bin_id = get_bin(bins, row_num)
@@ -274,7 +277,7 @@ def assign_bins(M, bins, legend, func_split, fun_only, syn_only):
             #Depending on split status, either append to bin_assignments or to just the annotated dictionary
             target_map = bin_assignments
 
-            if func_split or syn_only or fun_only:
+            if is_func_split or is_syn_only or is_fun_only:
                 target_map = bin_assignments[legend[row_i]['fun']]
 
             if bin_id not in target_map:
