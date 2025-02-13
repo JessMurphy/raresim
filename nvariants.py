@@ -92,7 +92,7 @@ def fit_nvars(Observed_variants_per_kb):
             tune = np.array([phi, omega])  # updated starting values
 
             re_LS1 = minimize(leastsquares, tune, constraints=constraints,
-                              options={'disp': False, 'xtol': 1e-12})  # estimate parameters with SLSQP
+                              options={'disp': False, 'ftol': 0.0, 'maxiter': 100})  # estimate parameters with SLSQP
             to_bind1 = np.concatenate((re_LS1.x, [re_LS1.fun]))  # record parameters and loss value
             re_tab1.append(to_bind1)  # bind information from each iteration together
 

@@ -113,7 +113,7 @@ def fit_afs(observed_bin_props_df):
     # Minimize with the SLSQP function using the starting values (tune), the least squares loss function (calc_prob_LS), and constraints (hin_tune)
     # Constraint: x[0] > 0
     cons = {'type': 'ineq', 'fun': lambda x: x[0]}
-    S = minimize(prob_leastsquares, tune, constraints=cons, options={'disp': False, 'ftol': 0.0, 'maxiter': 100})
+    S = minimize(prob_leastsquares, tune, constraints=cons, options={'disp': True, 'ftol': 0.0, 'maxiter': 25})
 
     # back calculate b after the parameters have been solved for
     alpha_opt = S.x[0]
