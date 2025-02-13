@@ -108,9 +108,9 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
     @param extra_rows: list of rows that were removed and never re-added
     @param matrix: sparse matrix of haps
     '''
-    extra_bin = bin_assignments[-1]
+    extra_rows += bin_assignments[len(bin_assignments)-1]
     # Loop through the bins from largest to smallest
-    for bin_id in range(len(bin_assignments))[:-1:-1]:
+    for bin_id in range(len(bin_assignments)-1)[::-1]:
         # If there are any rows with too many 1s for the largest bin, they get put into an extra bin,
         # and we do not prune these alleles away
         if bin_id == len(bins):
@@ -120,13 +120,13 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
         need = bins[bin_id][2]
         have = len(bin_assignments[bin_id])
 
-        activation = min([(float(activation_threshold)/100) * need, 10])
-        stop = (float(stopping_threshold)/100) * need
+        activation = min([(float(activation_threshold) / 100) * need, 10])
+        stop = (float(stopping_threshold) / 100) * need
 
         # If we have more rows in the bin than what we need, remove some rows
         if have - need > activation:
             # Calculate the probability to remove any given row in the bin
-            prob_remove = 1 - float(need) / float(have)
+            prob_remove = 1 - float(need) / float(have) if have != 0 else 0
             row_ids_to_rem = []
             for i in range(have):
                 # If we hit our stopping threshold to stop the pruning process, then stop the pruning process
@@ -146,7 +146,7 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
 
         # If we don't have enough rows in the current bin, pull from the list of excess rows
         elif have < round(need - activation):
-            if len(extra_rows) + len(extra_bin) < round(abs(need - have)):
+            if len(extra_rows) < round(abs(need - have)):
                 raise Exception(f'ERROR: Current bin has {have} variants, but the model needs {need} variants '
                                 f'and only {len(extra_rows)} excess rows are available to use and prune down '
                                 f'from larger bins.')
@@ -170,9 +170,11 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                     if matrix.row_num(row_id) != num_to_keep:
                         print(f"WARNING: Requested to prune row {row_id} down to {num_to_keep} variants, but after the request the row still has {matrix.row_num} variants. This should not happen and the issue likely needs to be raised with a developer.")
                     bin_assignments[bin_id].append(row_id)
+                    if row_id in bin_assignments[len(bin_assignments) - 1]:
+                        bin_assignments[len(bin_assignments) - 1].remove(row_id)
+
             for row_id in row_ids_to_add:
                 extra_rows.remove(row_id)
-
 
 def print_bin(bin_assignments, bins):
     print(f"{'Bin':<12}{'Expected':<18}{'Actual':<10}")
