@@ -76,19 +76,16 @@ def main():
         print_frequency_distribution(bins, bin_h, func_split, fun_only, syn_only)
         R = []
 
-        try:
-            if func_split:
-                R = {'fun':[], 'syn':[]}
-                prune_bins(bin_h['fun'], bins['fun'], R['fun'], M, args.activation_threshold, args.stop_threshold)
-                prune_bins(bin_h['syn'], bins['syn'], R['syn'], M, args.activation_threshold, args.stop_threshold)
-            elif fun_only:
-                prune_bins(bin_h['fun'], bins, R, M, args.activation_threshold, args.stop_threshold)
-            elif syn_only:
-                prune_bins(bin_h['syn'], bins, R, M, args.activation_threshold, args.stop_threshold)
-            else:
-                prune_bins(bin_h, bins, R, M, args.activation_threshold, args.stop_threshold)
-        except Exception as e:
-            sys.exit(str(e))
+        if func_split:
+            R = {'fun':[], 'syn':[]}
+            prune_bins(bin_h['fun'], bins['fun'], R['fun'], M, args.activation_threshold, args.stop_threshold)
+            prune_bins(bin_h['syn'], bins['syn'], R['syn'], M, args.activation_threshold, args.stop_threshold)
+        elif fun_only:
+            prune_bins(bin_h['fun'], bins, R, M, args.activation_threshold, args.stop_threshold)
+        elif syn_only:
+            prune_bins(bin_h['syn'], bins, R, M, args.activation_threshold, args.stop_threshold)
+        else:
+            prune_bins(bin_h, bins, R, M, args.activation_threshold, args.stop_threshold)
 
         print()
         print('New allele frequency distribution:')
@@ -97,13 +94,17 @@ def main():
         all_kept_rows = get_all_kept_rows(bin_h, R, func_split, fun_only, syn_only, args.keep_protected, legend)
 
         if not args.z:
+            trimmed_vars_file = open(f'{args.input_legend}-pruned-variants', 'w')
+            trimmed_vars_file.write("\t".join(legend_header))
             for row in range(M.num_rows()):
                 if row not in all_kept_rows:
                     M.prune_row(row, M.row_num(row))
+                    trimmed_vars_file.write("\t".join(legend[row]))
                     if M.row_num(row) != 0:
                         raise Exception("ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
                     all_kept_rows.append(row)
             all_kept_rows.sort()
+            trimmed_vars_file.close()
 
         # No need to write a new legend when using the z flag as we are not removing rows
         if args.z:
