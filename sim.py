@@ -94,7 +94,7 @@ def main():
         all_kept_rows = get_all_kept_rows(bin_h, R, func_split, fun_only, syn_only, args.keep_protected, legend)
 
         if not args.z:
-            trimmed_vars_file = open(f'{args.input_legend}-pruned-variants', 'w')
+            trimmed_vars_file = open(f'{args.output_legend if args.output_legend is not None else args.input_legend}-pruned-variants', 'w')
             trimmed_vars_file.write("\t".join(legend_header))
             for row in range(M.num_rows()):
                 if row not in all_kept_rows:
