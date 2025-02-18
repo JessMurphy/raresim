@@ -200,7 +200,7 @@ def print_bin(bin_assignments, bins):
     for bin_id in range(len(bin_assignments)):
         if bin_id < len(bins):
             col1 = f"[{str(bins[bin_id][0])},{str(bins[bin_id][1])}]"
-            col2 = f"{str(bins[bin_id][2])}"
+            col2 = f"{bins[bin_id][2]:.10f}"
             col3 = f"{str(len(bin_assignments[bin_id]))}"
         else:
             col1 = f"[{str(bins[bin_id-1][1]+1)},\u221E]"
@@ -419,9 +419,11 @@ def get_expected_bins(args, func_split, fun_only, syn_only):
         bins['fun'] = read_expected(args.exp_fun_bins)
         bins['syn'] = read_expected(args.exp_syn_bins)
     elif syn_only:
-        bins = read_expected(args.syn_bins_only)
+        bins = {}
+        bins['fun'] = read_expected(args.syn_bins_only)
     elif fun_only:
-        bins = read_expected(args.fun_bins_only)
+        bins = {}
+        bins['syn'] = read_expected(args.fun_bins_only)
     else:
         bins = read_expected(args.exp_bins)
     return bins
