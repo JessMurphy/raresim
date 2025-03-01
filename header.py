@@ -101,7 +101,7 @@ def get_args():
 
 
 
-def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, stopping_threshold):
+def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, stopping_threshold, legend):
     '''
     @param bin_assignments: A map of bin_id -> list of rows assigned to the bin
     @param bins: the provided input bins with lower bound, upper bound, and expected count
@@ -138,6 +138,8 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                 # to make up for not having enough rows in later bins
                 if flip < prob_remove:
                     row_id = bin_assignments[bin_id][i]
+                    if legend[row_id]['protected'] == '1':
+                        print(f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}")
                     # Add the ith row in the bin to the list of row ids to remove and the list of available
                     # rows to pull from if needed later on
                     row_ids_to_rem.append(row_id)
@@ -385,7 +387,7 @@ def print_frequency_distribution(bins, bin_assignments, func_split, fun_only, sy
         print_bin(bin_assignments, bins)
 
 
-def get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, keep_protected, legend):
+def get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, legend):
     all_kept_rows = []
 
     if func_split:
@@ -416,13 +418,6 @@ def get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, keep_p
         R = [item for sublist in R.values() for item in sublist]
     R = sorted(R)
 
-    if keep_protected:
-        keep_rows = []
-        for row_id in R:
-            if int(legend[row_id]["protected"]) == 1:
-                keep_rows.append(row_id)
-        all_kept_rows = list(merge(all_kept_rows, keep_rows))
-
     all_kept_rows = list(dict.fromkeys(all_kept_rows))
     return all_kept_rows
 
@@ -442,8 +437,8 @@ def get_expected_bins(args, func_split, fun_only, syn_only):
     return bins
 
 def adjust_for_protected_variants(bins, bin_assignments, legend):
-    ret = {bin_id : [] for bin_id in bin_assignments}
-    for bin_id in bin_assignments:
+    ret = {bin_id : [] for bin_id in range(len(bins))}
+    for bin_id in range(len(bins)):
         for row_id in bin_assignments[bin_id]:
             if legend[row_id]['protected'] == '1':
                 bin_assignments[bin_id].remove(row_id)
