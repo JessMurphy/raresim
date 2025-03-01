@@ -1,5 +1,4 @@
 import timeit
-
 from rareSim import sparse
 import gzip
 import sys
@@ -70,10 +69,23 @@ def main():
                 rows_of_zeros.add(i)
 
         bins = get_expected_bins(args, func_split, fun_only, syn_only)
+
         print(bins)
         bin_assignments = assign_bins(M, bins, legend, func_split, fun_only, syn_only)
         print('Input allele frequency distribution:')
         print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
+        if args.keep_protected:
+            if func_split:
+                protected_vars_per_bin = {
+                    'fun': adjust_for_protected_variants(bins['fun'], bin_assignments['fun'], legend),
+                    'syn': adjust_for_protected_variants(bins['syn'], bin_assignments['syn'], legend)}
+            else:
+                protected_vars_per_bin = adjust_for_protected_variants(bins, bin_assignments, legend)
+
+            print('Input allele frequency distribution (with protected variants pulled out):')
+            print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
         R = []
 
         if func_split:
@@ -87,9 +99,22 @@ def main():
         else:
             prune_bins(bin_assignments, bins, R, M, args.activation_threshold, args.stop_threshold)
 
+
         print()
-        print('New allele frequency distribution:')
+        if args.keep_protected:
+            print('New allele frequency distribution (with protected variants still removed):')
+        else:
+            print('New allele frequency distribution:')
         print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
+        if args.keep_protected:
+            if func_split:
+                add_protected_rows_back(bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
+                add_protected_rows_back(bins['syn'], bin_assignments['syn'], protected_vars_per_bin['syn'])
+            else:
+                add_protected_rows_back(bins, bin_assignments, protected_vars_per_bin)
+            print('New allele frequency distribution (with protected variants added back in):')
+            print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
 
         all_kept_rows = get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, args.keep_protected, legend)
 

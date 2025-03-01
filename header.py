@@ -235,7 +235,7 @@ def read_expected(expected_file_name):
             if header == None:
                 header = A
             else:
-                bins.append((int(A[0]), int(A[1]), float(A[2])))
+                bins.append([int(A[0]), int(A[1]), float(A[2])])
 
     return bins
 
@@ -440,3 +440,22 @@ def get_expected_bins(args, func_split, fun_only, syn_only):
     else:
         bins = read_expected(args.exp_bins)
     return bins
+
+def adjust_for_protected_variants(bins, bin_assignments, legend):
+    ret = {bin_id : [] for bin_id in bin_assignments}
+    for bin_id in bin_assignments:
+        for row_id in bin_assignments[bin_id]:
+            if legend[row_id]['protected'] == '1':
+                bin_assignments[bin_id].remove(row_id)
+                bins[bin_id][2] -= 1
+                ret[bin_id].append(row_id)
+    return ret
+
+def add_protected_rows_back(bins, bin_assignments, protected_var_counts_per_bin):
+    for bin_id in protected_var_counts_per_bin:
+        if bin_id == len(bins): continue
+        bins[bin_id][2] += len(protected_var_counts_per_bin[bin_id])
+        bin_assignments[bin_id] += protected_var_counts_per_bin[bin_id]
+        bin_assignments[bin_id] = sorted(bin_assignments[bin_id])
+
+
