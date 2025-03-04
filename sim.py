@@ -119,11 +119,11 @@ def main():
 
         if not args.z:
             trimmed_vars_file = open(f'{args.output_legend if args.output_legend is not None else args.input_legend}-pruned-variants', 'w')
-            trimmed_vars_file.write("\t".join(legend_header))
+            trimmed_vars_file.write("\t".join(legend_header) + '\n')
             for row in range(M.num_rows()):
                 if row not in all_kept_rows:
                     M.prune_row(row, M.row_num(row))
-                    trimmed_vars_file.write("\t".join(legend[row]))
+                    trimmed_vars_file.write("\t".join([y for x,y in legend[row].items()]) + '\n')
                     if M.row_num(row) != 0:
                         raise Exception("ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
                     all_kept_rows.append(row)

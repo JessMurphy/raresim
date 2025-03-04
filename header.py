@@ -138,7 +138,7 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                 # to make up for not having enough rows in later bins
                 if flip < prob_remove:
                     row_id = bin_assignments[bin_id][i]
-                    if legend[row_id]['protected'] == '1':
+                    if 'protected' in legend[row_id] and legend[row_id]['protected'] == '1':
                         print(f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}")
                     # Add the ith row in the bin to the list of row ids to remove and the list of available
                     # rows to pull from if needed later on
