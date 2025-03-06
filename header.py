@@ -1,4 +1,5 @@
 import argparse
+import copy
 import random
 import gzip
 from heapq import merge
@@ -131,7 +132,7 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
             for i in range(have):
                 # If we hit our stopping threshold to stop the pruning process, then stop the pruning process
                 if have - len(row_ids_to_rem) <= need - stop:
-                    print (f"Stopping threshold reaching for bin {bin_id}")
+                    print (f"Stopping threshold reached for bin {bin_id}")
                     break
                 flip = random.uniform(0, 1)
                 # If the row is 'chosen' for removal, remove it and add the row to the list of rows that may be used
@@ -139,7 +140,7 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
                 if flip < prob_remove:
                     row_id = bin_assignments[bin_id][i]
                     if 'protected' in legend[row_id] and legend[row_id]['protected'] == '1':
-                        print(f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}")
+                        print(f"WARNING: Attempting to prune a row that is protected. This should not happen and is a bug. RowId = {row_id}, binId={bin_id}")
                     # Add the ith row in the bin to the list of row ids to remove and the list of available
                     # rows to pull from if needed later on
                     row_ids_to_rem.append(row_id)
@@ -290,7 +291,6 @@ def assign_bins(matrix, bins, legend, is_func_split, is_fun_only, is_syn_only):
     row_i = 0
     for row in range(matrix.num_rows()):
         row_num = matrix.row_num(row)
-
         if row_num > 0:
             if is_func_split:
                 bin_id = get_bin(bins[legend[row_i]['fun']], row_num)
@@ -437,9 +437,10 @@ def get_expected_bins(args, func_split, fun_only, syn_only):
     return bins
 
 def adjust_for_protected_variants(bins, bin_assignments, legend):
-    ret = {bin_id : [] for bin_id in range(len(bins))}
+    ret = {bin_id : [] for bin_id in range(len(bin_assignments))}
     for bin_id in range(len(bins)):
-        for row_id in bin_assignments[bin_id]:
+        rows_in_bin = bin_assignments[bin_id].copy()
+        for row_id in rows_in_bin:
             if legend[row_id]['protected'] == '1':
                 bin_assignments[bin_id].remove(row_id)
                 bins[bin_id][2] -= 1
