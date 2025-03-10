@@ -95,6 +95,10 @@ def get_args():
                         default='10',
                         help='Percentage threshold for activation of the pruning process. Requires that the actual count for a bin must be more than the given percentage different from the expected count to activate pruning on the bin.')
 
+    parser.add_argument('--verbose',
+                        action='store_true',
+                        help='Rows in the legend marked with a 1 in the protected column will be accounted for but not pruned')
+
     args = parser.parse_args()
 
     return args
@@ -132,7 +136,6 @@ def prune_bins(bin_assignments, bins, extra_rows, matrix, activation_threshold, 
             for i in range(have):
                 # If we hit our stopping threshold to stop the pruning process, then stop the pruning process
                 if have - len(row_ids_to_rem) <= need - stop:
-                    print (f"Stopping threshold reached for bin {bin_id}")
                     break
                 flip = random.uniform(0, 1)
                 # If the row is 'chosen' for removal, remove it and add the row to the list of rows that may be used
@@ -333,6 +336,7 @@ def write_legend(all_kept_rows, input_legend, output_legend):
         for l in in_file.readlines():
             if header == None:
                 f.write(l)
+                r.write(l)
                 header = True
                 continue
 
