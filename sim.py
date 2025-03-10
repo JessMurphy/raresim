@@ -1,3 +1,4 @@
+import timeit
 from rareSim import sparse
 import gzip
 import sys
@@ -58,40 +59,85 @@ def main():
                     i+=1
 
     else:
+        rows_of_zeros = set()
 
-        if args.input_legend is None or args.output_legend is None:
+        if args.input_legend is None or (args.output_legend is None and args.z):
             sys.exit("Legend files not provided")
+
+        for i in range(M.num_rows()):
+            if M.row_num(i) == 0:
+                rows_of_zeros.add(i)
 
         bins = get_expected_bins(args, func_split, fun_only, syn_only)
 
-        bin_h = assign_bins(M, bins, legend, func_split, fun_only, syn_only, args.z)
+        bin_assignments = assign_bins(M, bins, legend, func_split, fun_only, syn_only)
         print('Input allele frequency distribution:')
-        print_frequency_distribution(bins, bin_h, func_split, fun_only, syn_only)
+        print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
+        if args.keep_protected:
+            if func_split:
+                protected_vars_per_bin = {
+                    'fun': adjust_for_protected_variants(bins['fun'], bin_assignments['fun'], legend),
+                    'syn': adjust_for_protected_variants(bins['syn'], bin_assignments['syn'], legend)}
+            else:
+                protected_vars_per_bin = adjust_for_protected_variants(bins, bin_assignments, legend)
+            
+            if args.verbose:
+                print('Input allele frequency distribution (with protected variants pulled out):')
+                print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
         R = []
 
-        try:
+        if func_split:
+            R = {'fun':[], 'syn':[]}
+            prune_bins(bin_assignments['fun'], bins['fun'], R['fun'], M, args.activation_threshold, args.stop_threshold, legend)
+            prune_bins(bin_assignments['syn'], bins['syn'], R['syn'], M, args.activation_threshold, args.stop_threshold, legend)
+        elif fun_only:
+            prune_bins(bin_assignments, bins, R, M, args.activation_threshold, args.stop_threshold, legend)
+        elif syn_only:
+            prune_bins(bin_assignments, bins, R, M, args.activation_threshold, args.stop_threshold, legend)
+        else:
+            prune_bins(bin_assignments, bins, R, M, args.activation_threshold, args.stop_threshold, legend)
+
+
+        print()
+        if args.keep_protected:
+            print('New allele frequency distribution (with protected variants still removed):')
+        else:
+            print('New allele frequency distribution:')
+        print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+
+        if args.keep_protected:
             if func_split:
-                R = {'fun':[], 'syn':[]}
-                prune_bins(bin_h['fun'], bins['fun'], R['fun'], M)
-                prune_bins(bin_h['syn'], bins['syn'], R['syn'], M)
-            elif fun_only:
-                prune_bins(bin_h['fun'], bins, R, M)
-            elif syn_only:
-                prune_bins(bin_h['syn'], bins, R, M)
+                add_protected_rows_back(bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
+                add_protected_rows_back(bins['syn'], bin_assignments['syn'], protected_vars_per_bin['syn'])
             else:
-                prune_bins(bin_h, bins, R, M)
-        except Exception as e:
-            sys.exit(str(e))
+                add_protected_rows_back(bins, bin_assignments, protected_vars_per_bin)
 
-        print()
-        print('New allele frequency distribution:')
-        print_frequency_distribution(bins, bin_h, func_split, fun_only, syn_only)
+            if args.verbose:
+                print('New allele frequency distribution (with protected variants added back in):')
+                print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
 
-        all_kept_rows = get_all_kept_rows(bin_h, R, func_split, fun_only, syn_only, args.z, args.keep_protected, legend)
-        
-        print()
-        print('Writing new variant legend')
-        write_legend(all_kept_rows, args.input_legend, args.output_legend)    
+        all_kept_rows = get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, legend)
+
+        if not args.z:
+            trimmed_vars_file = open(f'{args.output_legend if args.output_legend is not None else args.input_legend}-pruned-variants', 'w')
+            trimmed_vars_file.write("\t".join(legend_header) + '\n')
+            for row in range(M.num_rows()):
+                if row not in all_kept_rows:
+                    M.prune_row(row, M.row_num(row))
+                    trimmed_vars_file.write("\t".join([y for x,y in legend[row].items()]) + '\n')
+                    if M.row_num(row) != 0:
+                        raise Exception("ERROR: Trimming pruned row to a row of zeros did not work. Failing so that we don't write a bad haps file.")
+                    all_kept_rows.append(row)
+            all_kept_rows.sort()
+            trimmed_vars_file.close()
+
+        # No need to write a new legend when using the z flag as we are not removing rows
+        if args.z:
+            print()
+            print('Writing new variant legend')
+            write_legend(all_kept_rows, args.input_legend, args.output_legend)
 
         print()
         print('Writing new haplotype file', end='', flush=True)

@@ -31,7 +31,7 @@ class testRaresim(unittest.TestCase):
         M.load('./testData/test.haps.sm')
         bins = read_expected('./testData/testBins.txt')
 
-        bin_h = assign_bins(M, bins, legend, False, False, False, False)
+        bin_h = assign_bins(M, bins, legend, False, False, False)
         correct_assignment = {
             0 : [2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 18, 21, 22, 23, 24, 25, 26, 29],
             1 : [9, 16, 17, 19, 20, 27, 28, 30],
@@ -54,10 +54,10 @@ class testRaresim(unittest.TestCase):
         legend_header, legend = read_legend('./testData/test.legend')
         bins = read_expected('./testData/testBins.txt')
         random.seed(123)
-        bin_h = bin_h = assign_bins(M, bins, legend, False, False, False, False)
-        prune_bins(bin_h, bins, [], M)
-        all_kept_rows = get_all_kept_rows(bin_h, [], False, False, False, False, False, None)
-        true_kept_rows = [0, 4, 5, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 23, 25, 27, 28, 29, 30]
+        bin_h = bin_h = assign_bins(M, bins, legend, False, False, False)
+        prune_bins(bin_h, bins, [], M, 10, 10)
+        all_kept_rows = get_all_kept_rows(bin_h, [], False, False, False, False, None)
+        true_kept_rows = [0, 4, 5, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26, 27, 28, 29, 30]
         self.assertEqual(all_kept_rows, true_kept_rows)
 
 
