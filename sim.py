@@ -102,12 +102,11 @@ def main():
 
         print()
 
-        print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
-
         if args.keep_protected:
             if args.verbose:
                 print('New allele frequency distribution (With protected variants still removed):')
                 print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+                print('New allele frequency distribution (With protected variants added back in):')
 
             if func_split:
                 add_protected_rows_back(bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
@@ -115,7 +114,8 @@ def main():
             else:
                 add_protected_rows_back(bins, bin_assignments, protected_vars_per_bin)
 
-        print('New allele frequency distribution')
+        if not (args.keep_protected and args.verbose):
+            print('New allele frequency distribution')
         print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
 
         all_kept_rows = get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, legend)
