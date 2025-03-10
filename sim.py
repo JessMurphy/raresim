@@ -81,7 +81,7 @@ def main():
                     'syn': adjust_for_protected_variants(bins['syn'], bin_assignments['syn'], legend)}
             else:
                 protected_vars_per_bin = adjust_for_protected_variants(bins, bin_assignments, legend)
-            
+
             if args.verbose:
                 print('Input allele frequency distribution (with protected variants pulled out):')
                 print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
@@ -101,22 +101,22 @@ def main():
 
 
         print()
-        if args.keep_protected:
-            print('New allele frequency distribution (with protected variants still removed):')
-        else:
-            print('New allele frequency distribution:')
-        print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
 
         if args.keep_protected:
+            if args.verbose:
+                print('New allele frequency distribution (With protected variants still removed):')
+                print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+                print('New allele frequency distribution (With protected variants added back in):')
+
             if func_split:
                 add_protected_rows_back(bins['fun'], bin_assignments['fun'], protected_vars_per_bin['fun'])
                 add_protected_rows_back(bins['syn'], bin_assignments['syn'], protected_vars_per_bin['syn'])
             else:
                 add_protected_rows_back(bins, bin_assignments, protected_vars_per_bin)
 
-            if args.verbose:
-                print('New allele frequency distribution (with protected variants added back in):')
-                print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
+        if not (args.keep_protected and args.verbose):
+            print('New allele frequency distribution')
+        print_frequency_distribution(bins, bin_assignments, func_split, fun_only, syn_only)
 
         all_kept_rows = get_all_kept_rows(bin_assignments, R, func_split, fun_only, syn_only, legend)
 
