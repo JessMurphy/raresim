@@ -1,0 +1,5 @@
+Lower	Upper	Expected_var
+1	1	7
+2	2	7
+3	5	3
+6   15  5
