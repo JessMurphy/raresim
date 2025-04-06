@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from config import RunConfig
-from utils import *
+from raresim.engine.config import RunConfig
+from raresim.engine.utils import *
 
 
 class Pruner(ABC):
@@ -210,7 +210,7 @@ class FunctionalSplitPruner(Pruner):
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
 
-        if not self.__config.args.remove_zeroed_rows:
+        if not self.__config.remove_zeroed_rows:
             z_flag(self.__config.args, self.__matrix, self.__legend, rows_to_keep)
 
         rows_to_remove = [x for x in range(self.__matrix.num_rows()) if x not in rows_to_keep]
@@ -286,9 +286,11 @@ class FunctionalSplitPruner(Pruner):
         bin_assignments = {}
         if self.__config.run_type == 'func_split':
             bin_assignments = {
-                'fun': {bin_id: [] for bin_id in range(len(self.__bins) + 1)},
-                'syn': {bin_id: [] for bin_id in range(len(self.__bins) + 1)}
+                'fun': {bin_id: [] for bin_id in range(len(self.__bins['fun']) + 1)},
+                'syn': {bin_id: [] for bin_id in range(len(self.__bins['syn']) + 1)}
             }
+        else:
+            bin_assignments = {bin_id: [] for bin_id in range(len(self.__bins) + 1)}
 
         row_i = 0
         for row in range(self.__matrix.num_rows()):
@@ -327,7 +329,7 @@ class FunctionalSplitPruner(Pruner):
         for i in range(len(bins)):
             if bins[i][0] <= val <= bins[i][1]:
                 return i
-        return len(bins) + 1
+        return len(bins)
 
 class ProbabilisticPruner(Pruner):
     def __init__(self, config: RunConfig, legend: Legend, matrix: SparseMatrix):

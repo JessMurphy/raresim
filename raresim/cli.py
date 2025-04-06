@@ -10,22 +10,29 @@ import gzip
 def parseCommand():
     parser = argparse.ArgumentParser()
 
-    subparsers = parser.add_subparsers(dest='command', help='Available commands')
+    subparsers = parser.add_subparsers(dest='command', required=True, help='Available commands: sim, convert, extract')
 
     sim_parser = subparsers.add_parser('sim')
     convert_parser = subparsers.add_parser('convert')
     extract_parser = subparsers.add_parser('extract')
 
+
+    extract_parser.add_argument('-i',
+                                dest='input_file',
+                                required=True,
+                                help='Input cases path')
     extract_parser.add_argument('-o',
                                 dest='output_file',
+                                required=True,
                                 help='Output cases path')
-    extract_parser.add_argument('--seed',
+    extract_parser.add_argument('-s', '--seed',
                                 dest='seed',
                                 type=int,
                                 help='Seed for random sample')
     extract_parser.add_argument('-n',
                                 dest='num',
                                 type=int,
+                                required=True,
                                 help='Number of haplotypes to extract')
 
     sim_parser.add_argument('-m',
@@ -151,9 +158,6 @@ def main():
     elif command.command == 'extract':
         args = command
         extract(args)
-
-    else:
-        command.print_help()
 
 
 if __name__ == '__main__':

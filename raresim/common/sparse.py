@@ -1,12 +1,13 @@
 from raresim.common.exceptions import RaresimException, IllegalArgumentException
+from numpy import ndarray
 import random
 import os
 import gzip
 import timeit
 import numpy as np
-from numpy import ndarray
 import numba as nb
 import array
+import sys
 
 class SparseMatrix:
     """
@@ -75,7 +76,7 @@ class SparseMatrix:
         @param row: index of row to get
         @return: list of the indices of the ones in a row
         """
-        return self.__data[row].tolist()
+        return self.__data[row]
 
     def add(self, row: int, col: int) -> None:
         """
@@ -197,14 +198,12 @@ class SparseMatrixReader:
         if not os.path.isfile(filepath):
             raise IllegalArgumentException(f"No such file exists: {filepath}")
 
-        timer = timeit.default_timer()
         if filepath[-3:] == '.sm':
             ret = self.__loadCompressed(filepath)
         elif filepath[-3:] == '.gz':
             ret = self.__loadZipped(filepath)
         else:
             ret = self.__loadUncompressed(filepath)
-        print(f"Reading haps file took {timeit.default_timer() - timer} seconds")
         return ret
 
     def __loadZipped(self, filepath: str) -> SparseMatrix:
@@ -313,14 +312,14 @@ class SparseMatrixWriter:
         @param compression: compression method. Default is "gz". Can be "gz" for g-zipped, "sm" for binary encoded, or "" for uncompressed.
         @return: None
         """
-        writeTimer = timeit.default_timer()
         if compression == "gz":
             self.__writeZipped(sparseMatrix, filename)
         elif compression == "sm":
             self.__writeCompressed(sparseMatrix, filename)
         else:
             self.__writeUncompressed(sparseMatrix, filename)
-        print(f"Writing haps file too {timeit.default_timer() - writeTimer} seconds")
+        sys.stdout.write("\r[%-20s] %d%%" % ('='* 20, 100))
+        print()
 
     @staticmethod
     def __writeZipped(sparseMatrix: SparseMatrix, filename: str):
@@ -338,6 +337,8 @@ class SparseMatrixWriter:
                 line = " ".join(row) + "\n"
                 f.write(line.encode())
 
+                sys.stdout.write("\r[%-20s] %d%%" % ('='* int((i / sparseMatrix.num_rows()) * 20), i/sparseMatrix.num_rows()*100))
+
     @staticmethod
     def __writeUncompressed(sparseMatrix: SparseMatrix, filename: str):
         """
@@ -346,6 +347,7 @@ class SparseMatrixWriter:
         @param filename: output file
         @return: None
         """
+        step = int(sparseMatrix.num_rows() / 10)
         with open(filename, "w") as f:
             for i in range(sparseMatrix.num_rows()):
                 row = ["0"] * sparseMatrix.num_cols()
@@ -353,6 +355,9 @@ class SparseMatrixWriter:
                     row[j] = "1"
                 line = " ".join(row) + "\n"
                 f.write(line)
+                if i % step == 0:
+                    print('.', end='', flush=True)
+
 
     @staticmethod
     def __writeCompressed(sparseMatrix: SparseMatrix, filename: str):
@@ -362,9 +367,12 @@ class SparseMatrixWriter:
         @param filename: output file
         @return: None
         """
+        step = int(sparseMatrix.num_rows() / 10)
         with open(filename, "wb") as f:
             f.write(int.to_bytes(sparseMatrix.num_cols(), 4, "little"))
             for i in range(sparseMatrix.num_rows()):
                 row = sparseMatrix.get_row_raw(i)
                 data = array.array("i", row + [-1])
                 f.write(data.tobytes())
+                if i % step == 0:
+                    print('.', end='', flush=True)

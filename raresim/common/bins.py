@@ -6,7 +6,7 @@ def loadBins(filename: str) -> list:
 
         line = f.readline()
         while line and line.strip() != "" and line.strip() != "\n":
-            row = line.rstrip().split('\t')
+            row = line.rstrip().split()
             bins.append((int(row[0]), int(row[1]), float(row[2])))
             line = f.readline()
     return bins
