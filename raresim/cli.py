@@ -1,6 +1,7 @@
 from raresim.common.sparse import SparseMatrixReader, SparseMatrixWriter
 from raresim.engine.runner import DefaultRunner
 from raresim.engine.config import RunConfig
+from raresim.calculate.expected_vars import calc
 import argparse
 import random
 import os
@@ -15,7 +16,59 @@ def parseCommand():
     sim_parser = subparsers.add_parser('sim')
     convert_parser = subparsers.add_parser('convert')
     extract_parser = subparsers.add_parser('extract')
+    calc_parser = subparsers.add_parser('calc')
 
+    calc_parser.add_argument('--mac',
+                        dest='mac',
+                        required=True,
+                        help='Provided mac bins with proportions')
+    calc_parser.add_argument('-o',
+                        dest='output',
+                        required=True,
+                        help='Output file to be written')
+    calc_parser.add_argument('-N',
+                        dest='n',
+                        required=True,
+                        help='Number of expected variants')
+    calc_parser.add_argument('--pop',
+                        dest='pop',
+                        help='Population to use default values for if not providing alpha, beta, omega, phi, b, or target values')
+    calc_parser.add_argument('--alpha',
+                        dest='alpha',
+                        help='Provided alpha value')
+    calc_parser.add_argument('--beta',
+                        dest='beta',
+                        help='Provided beta value')
+    calc_parser.add_argument('--omega',
+                        dest='omega',
+                        help='Provided omega value')
+    calc_parser.add_argument('--phi',
+                        dest='phi',
+                        help='Provided phi value')
+    calc_parser.add_argument('-b',
+                        dest='b',
+                        help='Provided b value')
+    calc_parser.add_argument('--nvar_target_data',
+                        dest='nvar_target_data',
+                        help='Provided target values for nvars')
+    calc_parser.add_argument('--afs_target_data',
+                        dest='afs_target_data',
+                        help='Provided target values for afs')
+    calc_parser.add_argument('--reg_size',
+                        dest='reg_size',
+                        help='Region size in kilobases')
+    calc_parser.add_argument('-w',
+                        dest='w',
+                        default='1.0',
+                        help='Weight value to multiple total number of variants by in non-stratified runs. Valid range of values is [0,2] with a default of 1')
+    calc_parser.add_argument('--w_fun',
+                        dest='w_fun',
+                        default='1.0',
+                        help='Weight value to multiple total number of functional variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
+    calc_parser.add_argument('--w_syn',
+                        dest='w_syn',
+                        default='1.0',
+                        help='Weight value to multiple total number of synonymous variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
 
     extract_parser.add_argument('-i',
                                 dest='input_file',
@@ -158,6 +211,10 @@ def main():
     elif command.command == 'extract':
         args = command
         extract(args)
+
+    elif command.command == 'calc':
+        args = command
+        calc(args)
 
 
 if __name__ == '__main__':

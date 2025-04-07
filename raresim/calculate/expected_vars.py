@@ -11,65 +11,6 @@ DEFAULT_PARAMS = {
     'SAS': {"phi":0.1249, "omega":0.6495, "alpha": 1.6977, "beta": -0.2273, "b": 0.3564}
 }
 
-def get_args():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument('--mac',
-                        dest='mac',
-                        required=True,
-                        help='Provided mac bins with proportions')
-    parser.add_argument('-o',
-                        dest='output',
-                        required=True,
-                        help='Output file to be written')
-    parser.add_argument('-N',
-                        dest='n',
-                        required=True,
-                        help='Number of expected variants')
-    parser.add_argument('--pop',
-                        dest='pop',
-                        help='Population to use default values for if not providing alpha, beta, omega, phi, b, or target values')
-    parser.add_argument('--alpha',
-                        dest='alpha',
-                        help='Provided alpha value')
-    parser.add_argument('--beta',
-                        dest='beta',
-                        help='Provided beta value')
-    parser.add_argument('--omega',
-                        dest='omega',
-                        help='Provided omega value')
-    parser.add_argument('--phi',
-                        dest='phi',
-                        help='Provided phi value')
-    parser.add_argument('-b',
-                        dest='b',
-                        help='Provided b value')
-    parser.add_argument('--nvar_target_data',
-                        dest='nvar_target_data',
-                        help='Provided target values for nvars')
-    parser.add_argument('--afs_target_data',
-                        dest='afs_target_data',
-                        help='Provided target values for afs')
-    parser.add_argument('--reg_size',
-                        dest='reg_size',
-                        help='Region size in kilobases')
-    parser.add_argument('-w',
-                        dest='w',
-                        default='1.0',
-                        help='Weight value to multiple total number of variants by in non-stratified runs. Valid range of values is [0,2] with a default of 1')
-    parser.add_argument('--w_fun',
-                        dest='w_fun',
-                        default='1.0',
-                        help='Weight value to multiple total number of functional variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
-    parser.add_argument('--w_syn',
-                        dest='w_syn',
-                        default='1.0',
-                        help='Weight value to multiple total number of synonymous variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
-
-    args = parser.parse_args()
-
-    return args
-
 def read_mac_bins(macs_file):
     root, extension = os.path.splitext(macs_file)
     macs = []
@@ -276,8 +217,7 @@ def afs(alpha, beta, b, macs):
     ret = [(lowers[i], uppers[i], props[i]) for i in range(len(props))]
     return ret
 
-def main():
-    args = get_args()
+def calc(args):
     n = int(args.n)
     macs = read_mac_bins(args.mac)
     reg_size = float(args.reg_size)
@@ -356,6 +296,3 @@ def main():
         rows = afs(alpha, beta, b, macs)
         fun_output_file = os.path.splitext(args.output)[0] + '_fun.txt'
         write_expected_variants(fun_output_file, num_variants, rows)
-
-if __name__ == '__main__':
-    main()
