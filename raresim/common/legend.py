@@ -60,6 +60,15 @@ class Legend:
         """
         return dict(zip(self.__header, self.__rows[index]))
 
+    def get_row_as_list(self, index: int) -> list:
+        """
+        Returns the row at the given index as a list.
+
+        :param index: the index of the row to get
+        :return: the row at the given index as a list
+        """
+        return self.__rows[index]
+
     def __getitem__(self, index: int):
         """
         Returns the row at the given index as a dictionary.
@@ -126,5 +135,5 @@ class LegendReaderWriter:
             header_string = "\t".join(legend.get_header()) + "\n"
             f.write(header_string)
             for i in range(legend.row_count()):
-                line = "\t".join(legend.get_row(i)) + "\n"
+                line = "\t".join(legend.get_row_as_list(i)) + "\n"
                 f.write(line)
