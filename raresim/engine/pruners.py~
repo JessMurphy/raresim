@@ -203,17 +203,10 @@ class FunctionalSplitPruner(Pruner):
             prune_bins(extra_rows, bin_assignments, self.__legend, self.__matrix, self.__bins, self.__config.activation_threshold, self.__config.stop_threshold)
 
         print('\nNew allele frequency distribution:')
-        if mode == 'func_split':
-            print('Functional')
-            print_bin(self.__bins['fun'], bin_assignments['fun'])
-            print('\nSynonymous')
-            print_bin(self.__bins['syn'], bin_assignments['syn'])
-        elif mode == 'fun_only':
-            print('Functional')
-            print_bin(self.__bins, bin_assignments)
-        elif mode == 'syn_only':
-            print('Synonymous')
-            print_bin(self.__bins, bin_assignments)
+        print('Functional')
+        print_bin(self.__bins['fun'], bin_assignments['fun'])
+        print('\nSynonymous')
+        print_bin(self.__bins['syn'], bin_assignments['syn'])
 
         rows_to_keep = self.get_all_kept_rows(bin_assignments, extra_rows)
 
