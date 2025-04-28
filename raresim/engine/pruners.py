@@ -304,7 +304,9 @@ class FunctionalSplitPruner(Pruner):
             row_num = self.__matrix.row_num(row)
             if row_num > 0:
                 bin_id = self.get_bin(row_num)
-                target_map = bin_assignments[self.__legend[row_i]['fun']]
+                target_map = bin_assignments
+                if self.__config.run_type == 'func_split':
+                    target_map = bin_assignments[self.__legend[row_i]['fun']]
                 if bin_id not in target_map:
                     target_map[bin_id] = []
                 target_map[bin_id].append(row_i)
