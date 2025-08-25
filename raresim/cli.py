@@ -21,67 +21,67 @@ def parseCommand():
     calc_parser.add_argument('--mac',
                         dest='mac',
                         required=True,
-                        help='Provided mac bins with proportions')
+                        help='MAC bin bounds (lower and upper allele counts) for the simulated sample size')
     calc_parser.add_argument('-o',
                         dest='output',
                         required=True,
-                        help='Output file to be written')
+                        help='Output file name')
     calc_parser.add_argument('-N',
                         dest='n',
                         required=True,
-                        help='Number of expected variants')
+                        help='Simulated sample size')
     calc_parser.add_argument('--pop',
                         dest='pop',
-                        help='Population to use default values for if not providing alpha, beta, omega, phi, b, or target values')
+                        help='Population (AFR, EAS, NFE, or SAS) to use default values for if not providing alpha, beta, omega, phi, and b values or target data')
     calc_parser.add_argument('--alpha',
                         dest='alpha',
-                        help='Provided alpha value')
+                        help='Shape parameter to estimate the expected AFS distribution (must be > 0)')
     calc_parser.add_argument('--beta',
                         dest='beta',
-                        help='Provided beta value')
+                        help='Shape parameter to estimate the expected AFS distribution')
     calc_parser.add_argument('--omega',
                         dest='omega',
-                        help='Provided omega value')
+                        help='Scaling parameter to estimate the expected number of variants per (Kb) for sample size N (range of 0-1)')
     calc_parser.add_argument('--phi',
                         dest='phi',
-                        help='Provided phi value')
+                        help='Shape parameter to estimate the expected number of variants per (Kb) for sample size N (must be > 0)')
     calc_parser.add_argument('-b',
                         dest='b',
-                        help='Provided b value')
+                        help='Scale parameter to estimate the expected AFS distribution')
     calc_parser.add_argument('--nvar_target_data',
                         dest='nvar_target_data',
-                        help='Provided target values for nvars')
+                        help='Target downsampling data with the number of variants per Kb to estimate the expected number of variants per Kb for sample size N')
     calc_parser.add_argument('--afs_target_data',
                         dest='afs_target_data',
-                        help='Provided target values for afs')
+                        help='Target AFS data with the proportion of variants per MAC bin to estimate the expected AFS distribution')
     calc_parser.add_argument('--reg_size',
                         dest='reg_size',
-                        help='Region size in kilobases')
+                        help='Size of simulated genetic region in kilobases (Kb)')
     calc_parser.add_argument('-w',
                         dest='w',
                         default='1.0',
-                        help='Weight value to multiple total number of variants by in non-stratified runs. Valid range of values is [0,2] with a default of 1')
+                        help='Weight to multiply the expected number of variants by in non-stratified simulations (default value of 1))
     calc_parser.add_argument('--w_fun',
                         dest='w_fun',
                         default='1.0',
-                        help='Weight value to multiple total number of functional variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
+                        help='Weight to multiply the expected number of functional variants by in stratified simulations (default value of 1)')
     calc_parser.add_argument('--w_syn',
                         dest='w_syn',
                         default='1.0',
-                        help='Weight value to multiple total number of synonymous variants by in stratified runs. Valid range of values is [0,2] with a default of 1')
+                        help='Weight to multiply the expected number of synonymous variants by in stratified simulations (default value of 1)')
 
     extract_parser.add_argument('-i',
                                 dest='input_file',
                                 required=True,
-                                help='Input cases path')
+                                help='Input haplotype file')
     extract_parser.add_argument('-o',
                                 dest='output_file',
                                 required=True,
-                                help='Output cases path')
+                                help='Output haplotype file name')
     extract_parser.add_argument('-s', '--seed',
                                 dest='seed',
                                 type=int,
-                                help='Seed for random sample')
+                                help='Optional seed for reproducibility')
     extract_parser.add_argument('-n',
                                 dest='num',
                                 type=int,
@@ -91,82 +91,81 @@ def parseCommand():
     sim_parser.add_argument('-m',
                         dest='sparse_matrix',
                         required=True,
-                        help='Input sparse matrix path, can be a .haps, .sm, or .gz file')
+                        help='Input haplotype file (can be a .haps, .sm, or .gz file)')
 
     sim_parser.add_argument('-b',
                         dest='exp_bins',
-                        help='Input expected bin sizes')
+                        help='Expected number of functional and synonymous variants per MAC bin')
 
     sim_parser.add_argument('--functional_bins',
                         dest='exp_fun_bins',
-                        help='Input expected bin sizes for functional variants')
+                        help='Expected number of variants per MAC bin for functional variants (must be used with --synonymous_bins) ')
 
     sim_parser.add_argument('--synonymous_bins',
                         dest='exp_syn_bins',
-                        help='Input expected bin sizes for synonymous variants')
+                        help='Expected number of variants per MAC bin for synonymous variants (must be used with --functional_bins) ')
 
     sim_parser.add_argument('-l',
                         dest='input_legend',
                         required=True,
-                        help='Input variant site legend')
+                        help='Input legend file')
 
     sim_parser.add_argument('-L',
                         dest='output_legend',
-                        help='Output variant site legend')
+                        help='Output legend file (only required when using -z)')
 
     sim_parser.add_argument('-H',
                         dest='output_hap',
                         required=True,
-                        help='Output compress hap file')
+                        help='Output compressed haplotype file')
 
     sim_parser.add_argument('--f_only',
                         dest='fun_bins_only',
-                        help='Input expected bin sizes for only functional variants')
+                        help='Expected number of variants per MAC bin for only functional variants')
 
     sim_parser.add_argument('--s_only',
                         dest='syn_bins_only',
-                        help='Input expected bin sizes for synonymous variants only')
+                        help='Expected number of variants per MAC bin for only synonymous variants')
 
     sim_parser.add_argument('-z',
                         action='store_true',
-                        help='Rows of zeros and pruned rows are removed')
+                        help='Monomorphic and pruned variants (rows of zeros) are removed from the output haplotype file')
 
     sim_parser.add_argument('-prob',
                         action='store_true',
-                        help='Rows are pruned allele by allele given a probability of removal')
+                        help='Variants are pruned allele by allele given a probability of removal in the legend file')
 
     sim_parser.add_argument('--small_sample',
                         action='store_true',
-                        help='Override error to allow for simulation of small sample size')
+                        help='Overrides error to allow for simulation of small sample sizes (<10,000 haplotypes)')
 
     sim_parser.add_argument('--keep_protected',
                         action='store_true',
-                        help='Rows in the legend marked with a 1 in the protected column will be accounted'
-                             ' for but not pruned')
+                        help='Variants designated with a 1 in the protected column of the legend file will not be pruned')
 
     sim_parser.add_argument('--stop_threshold',
                         dest='stop_threshold',
                         default='20',
-                        help='Percentage threshold for the pruning process 0-100. Provides a stop to prevent us from going the given % below the expected count for any given bin during pruning. Default value of 20.')
+                        help='Percentage threshold for stopping the pruning process (0-100). Prevents the number of variants from falling below the specified percentage of the expected count for any given MAC bin during pruning (default value of 20)')
 
     sim_parser.add_argument('--activation_threshold',
                         dest='activation_threshold',
                         default='10',
-                        help='Percentage threshold for activation of the pruning process. Requires that the actual count for a bin must be more than the given percentage different from the expected count to activate pruning on the bin.')
+                        help='Percentage threshold for activating the pruning process (0-100). Requires that the actual number of variants for a MAC bin must be more than the given percentage different from the expected number to activate pruning on the bin')
 
     sim_parser.add_argument('--verbose',
                         action='store_true',
-                        help='Rows in the legend marked with a 1 in the protected column will be accounted for but not pruned')
+                        help='')
 
     convert_parser.add_argument('-i',
                                 dest='input_file',
                                 required=True,
-                                help='Input sparse matrix path, can be a .haps, .sm, or .gz file')
+                                help='Input haplotype file')
 
     convert_parser.add_argument('-o',
                                 dest='output_file',
                                 required=True,
-                                help='Output haplotype file path')
+                                help='Output haplotype file')
 
     args = parser.parse_args()
 
